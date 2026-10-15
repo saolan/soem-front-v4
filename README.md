@@ -1,21 +1,37 @@
-# React + TypeScript + Vite + shadcn/ui
+# SOEM Front-end
 
-This is a template for a new Vite project with React, TypeScript, and shadcn/ui.
+SPA del ERP SOEM: React + TypeScript + Vite, Tailwind CSS v4 y shadcn/ui
+(Base UI). Consume la API REST del back-end ubicado en `../soem`.
 
-## Adding components
+Las reglas de arquitectura, estructura, contrato del API y seguridad están en
+[`AGENTS.md`](AGENTS.md).
 
-To add components to your app, run the following command:
+## Comandos
 
 ```bash
-npx shadcn@latest add button
+npm install          # instalar dependencias
+npm run dev          # servidor de desarrollo en http://localhost:5173
+npm run typecheck    # verificación de tipos
+npm run lint         # ESLint
+npm run format       # Prettier
+npm run build        # build de producción en dist/
 ```
 
-This will place the ui components in the `src/components` directory.
+## Back-end en desarrollo
 
-## Using components
+`npm run dev` reenvía `/api` a WildFly reescribiéndolo a `/soem/api`. El
+destino por defecto es `http://localhost:8080`; para cambiarlo, crea
+`.env.local` con:
 
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button"
+```bash
+SOEM_API_DESTINO=http://otro-host:8080
 ```
+
+## Componentes de shadcn/ui
+
+```bash
+npx shadcn@latest add <componente>
+```
+
+Se generan en `src/compartido/componentes/ui` (alias de `components.json`) y
+se importan como `@/compartido/componentes/ui/<componente>`.
