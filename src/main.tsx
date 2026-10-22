@@ -2,13 +2,13 @@ import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 
 import "./index.css"
-import App from "./App.tsx"
-import { ThemeProvider } from "@/compartido/componentes/theme-provider.tsx"
+import { App } from "@/app/App"
+import { LimiteErrores } from "@/compartido/componentes/LimiteErrores"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider>
+    <LimiteErrores>
       <App />
-    </ThemeProvider>
+    </LimiteErrores>
   </StrictMode>
 )
