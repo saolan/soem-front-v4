@@ -37,6 +37,10 @@ independiente que consume la API REST del back-end ubicado en `../soem`.
     (es de Radix): adapta los ejemplos de Radix al copiarlos.
   - No instales paquetes `@radix-ui/*` ni `radix-ui`, ni cambies el `style` de
     `components.json`.
+  - `sonner.tsx` de shadcn importa `next-themes`: se adapta a `useTheme` de
+    `compartido/componentes/theme-provider.tsx`; no instales `next-themes`.
+  - `Menu.RadioItem` de Base UI no cierra el menú por defecto: usa
+    `closeOnClick` en selectores de opción única.
   - Los componentes de shadcn importan `cn` del paquete `cn` (oficial de
     shadcn, reemplaza a clsx + tailwind-merge); el código propio lo importa
     desde `@/compartido/utilidades/cn`, que lo reexporta.
@@ -107,6 +111,15 @@ src/
   se mueve a `src/app/` al crear el router.
 - Los tipos de los DTO se derivan de los esquemas Zod (`z.infer`); no declares
   interfaces duplicadas a mano.
+- `compartido` nunca importa de `modulos`. Por eso `compartido/sesion/`
+  contiene los esquemas de sesión (`LoginRespuestaDTO`, `UsuarioDTO`) y la
+  llamada a `/auth/refresh`; el resto de `/auth/*` y sus páginas viven en
+  `modulos/seguridad`.
+- Piezas existentes a reutilizar: `clienteHttp` y `ErrorApi`
+  (`compartido/api`), `aplicarErroresFormulario`, `CampoFormulario`,
+  `AvisoError`, `CargandoPagina`, `LimiteErrores`, `useSesion`,
+  `useTienePermiso`, `RutaProtegida`/`RutaPublica`
+  (`compartido/sesion/GuardasRuta.tsx`).
 - Los archivos generados por shadcn (`compartido/componentes/ui/*` y
   `compartido/componentes/theme-provider.tsx`) conservan sus nombres en
   inglés (`Button`, `ThemeProvider`, `useTheme`); el código propio sigue la
@@ -155,7 +168,8 @@ src/
     (DELETE es borrado lógico salvo indicación contraria)
   - `GET /recurso/combo` → `ComboDTO[] { valor, etiqueta }`, sin paginar, solo activos
   - Sub-recursos en bloque con `PUT` (ej. `PUT /roles/{id}/permisos`,
-    `PUT /usuarios/{id}/roles`)
+    `PUT /roles/{id}/sucursales`, `PUT /usuarios/{id}/roles`) y sub-recursos
+    singulares (`GET|PUT|DELETE /sucursales/{id}/certificado-emision`)
 - No todos los recursos exponen todas las operaciones (ej. `/permisos` no tiene
   DELETE): verifica en el controlador antes de mostrar la acción.
 - Paginación:
@@ -178,6 +192,10 @@ src/
     llegar **sin cuerpo JSON**: `clienteHttp` no debe asumir que todo error trae
     `RespuestaApi`.
 - Tipos de datos:
+  - El back-end serializa con JSON-B (Yasson), que **omite las propiedades
+    `null`** (incluido `datos` del envoltorio). En Zod los campos opcionales
+    son `.nullish()` (no `.nullable()`); `clienteHttp` trata un `datos`
+    ausente como `null`.
   - Enums (ej. `Accion`) viajan en MAYÚSCULAS en JSON y en query params
     (`BUSCAR`, `CREAR`...). Un valor inválido en un query param produce `404`.
   - `LocalDate` viaja como `"YYYY-MM-DD"` (compatible directo con
@@ -196,12 +214,19 @@ src/
 
 - Autenticación con MicroProfile JWT del back-end:
   - `POST /auth/login` `{ usuario, clave, sucursalId? }` → `LoginRespuestaDTO`
-    (`accessToken`, `expiraEnSegundos`, `sucursalId`, `usuario`, `permisos`,
-    `claveCaducada`) + cookie `refreshToken`.
-  - `POST /auth/refresh` → nuevo access token + rotación de la cookie.
+    (`accessToken`, `expiraEnSegundos`, `sucursalId`, `sucursales`
+    (`ComboDTO[]` accesibles), `usuario`, `permisos`, `claveCaducada`) +
+    cookie `refreshToken`. El login del front no pide sucursal: el back-end
+    asigna una por defecto y se cambia desde la cabecera.
+  - `POST /auth/refresh` → mismo `LoginRespuestaDTO` + rotación de la cookie;
+    al recargar repone toda la sesión (no hace falta `/auth/me`).
+  - `POST /auth/cambiar-sucursal` `{ sucursalId }` → requiere access token y
+    cookie, rota el refresh y devuelve `LoginRespuestaDTO`; `400` si la clave
+    está caducada.
   - `POST /auth/logout` → revoca el refresh token y borra la cookie.
   - `GET /auth/me` → sesión actual; `POST /auth/cambiar-clave`
-    `{ claveActual, claveNueva }`.
+    `{ claveActual, claveNueva }` → `LoginRespuestaDTO`, o `datos: null` si no
+    llegó la cookie (la sesión queda cerrada y hay que volver al login).
 - El access token (15 min) se guarda **solo en memoria** (contexto de sesión) y
   se envía como `Authorization: Bearer <token>`.
 - El refresh token (7 días) vive en una cookie `HttpOnly`, `Secure`,
@@ -214,6 +239,10 @@ src/
     las peticiones que fallen mientras tanto esperan ese mismo refresh y luego
     se reintentan una sola vez. El refresh token rota en cada uso, por lo que
     dos refresh simultáneos invalidan la sesión.
+  - No intenta refresh ante un `401` de `/auth/login`, `/auth/refresh` ni
+    `/auth/logout` (credenciales inválidas llegan como `401` **con**
+    `RespuestaApi`); sí en `/auth/me`, `/cambiar-clave` y `/cambiar-sucursal`,
+    que usan el access token.
   - Si el refresh falla, limpia la sesión, el caché de TanStack Query y
     redirige a login conservando la ruta de retorno.
   - No envíes encabezados fuera de `Authorization`, `Content-Type` y `Accept`
@@ -242,16 +271,23 @@ src/
   `type="password"` y `autoComplete` adecuado.
 - Entornos:
   - La URL base del API es **siempre relativa**: `/api/v1`. El back-end se
-    despliega como `soem.war` (context root `/soem`), pero la cookie del
-    refresh tiene `path=/api/v1/auth`: si el navegador llamara a
-    `/soem/api/v1/...` o a otro origen, la cookie no se enviaría y el refresh
-    fallaría. Por eso el proxy reescribe `/api` → `/soem/api`.
-  - Desarrollo: `server.proxy` de Vite (ya configurado en `vite.config.ts`).
-    El destino se define con `SOEM_API_DESTINO` en `.env.local` (por defecto
-    `http://localhost:8080`), sin prefijo `VITE_`.
+    despliega como `soem.war` (context root `/soem`) y el proxy reescribe
+    `/api` → `/soem/api`.
+  - El back-end emite la cookie del refresh con
+    `path=<contextPath>/api/v1/auth` (`/soem/api/v1/auth`,
+    `../soem/.../seguridad/controlador/AuthControlador.java` `rutaCookie()`).
+    Como el navegador llama a `/api/v1/auth`, el proxy **debe reescribir el
+    path de la cookie**; si no, la cookie no se envía y el refresh falla.
+  - Desarrollo: `server.proxy` de Vite (ya configurado en `vite.config.ts`),
+    con `cookiePathRewrite: { "/soem/api/v1/auth": "/api/v1/auth" }` (la clave
+    se compara con el path completo, no es un prefijo). El destino se define
+    con `SOEM_API_DESTINO` en `.env.local` (por defecto
+    `http://localhost:8080`), sin prefijo `VITE_`. No hace falta Nginx en
+    desarrollo. La cookie es `Secure`: abre la app en `http://localhost`
+    (no por IP ni otro host en http).
   - Producción: Nginx sirve la SPA con fallback a `index.html` para las rutas
     del cliente y hace reverse proxy en el mismo dominio:
-    `location /api/ { proxy_pass http://<wildfly>:8080/soem/api/; }`.
+    `location /api/ { proxy_pass http://<wildfly>:8080/soem/api/; proxy_cookie_path /soem/api/ /api/; }`.
   - Nunca coloques secretos ni la URL del back-end en variables `VITE_*` (se
     incrustan en el bundle).
 
@@ -344,6 +380,9 @@ Generar interfaces:
   CRUD de mantenimiento, facturar y cobrar).
 - Consulta por roles y labels accesibles (`getByRole`, `getByLabelText`), no
   por clases CSS.
+- `npm run test` ejecuta `vitest run` (jsdom, archivos `*.test.ts(x)` junto al
+  código). Sin globals: importa `describe/it/expect/vi` de `vitest` y llama a
+  `cleanup()` en `afterEach`. No hay jest-dom: usa aserciones de Vitest.
 
 ## FORMA DE RESPONDER
 
@@ -359,8 +398,8 @@ Generar interfaces:
 
 1. Revisa los archivos modificados.
 2. Confirma que los nombres de campos y tipos coinciden con los DTO de `../soem`.
-3. Ejecuta `npm run typecheck`, `npm run lint`, `npm run test` (cuando el
-   script exista) y `npm run build`.
+3. Ejecuta `npm run typecheck`, `npm run lint`, `npm run test` y
+   `npm run build`.
 4. Confirma que no se guardan tokens fuera de memoria ni se exponen en URLs o
    logs, y que no se usó `dangerouslySetInnerHTML`.
 5. Confirma que no se agregaron librerías fuera de la lista aprobada.
