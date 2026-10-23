@@ -8,6 +8,7 @@ const PREFIJO_AUTH = "/auth/"
 // Endpoints públicos: su 401 es definitivo (credenciales inválidas, refresh
 // vencido); renovar ahí provocaría un bucle.
 const RUTAS_SIN_RENOVACION = ["/auth/login", "/auth/refresh", "/auth/logout"]
+const NOMBRE_LOCK_REFRESH = "soem-refresh"
 
 type Metodo = "GET" | "POST" | "PUT" | "DELETE"
 type ValorParametro = string | number | boolean | null | undefined
@@ -51,15 +52,27 @@ export function registrarManejadoresSesion(nuevos: ManejadoresSesion) {
 }
 
 /**
+ * Las pestañas comparten la cookie del refresh token: un lock del navegador
+ * evita dos refresh simultáneos, que el back-end trataría como reuso y
+ * revocaría todas las sesiones del usuario.
+ */
+function conLockDeRefresh<T>(accion: () => Promise<T>): Promise<T> {
+  if (typeof navigator === "undefined" || !("locks" in navigator)) {
+    return accion()
+  }
+  return navigator.locks.request(NOMBRE_LOCK_REFRESH, accion)
+}
+
+/**
  * Renovación single-flight: el refresh token rota en cada uso, así que todas
  * las llamadas concurrentes comparten la misma promesa.
  */
 export function renovarSesion(): Promise<boolean> {
-  if (!manejadores) {
+  const actuales = manejadores
+  if (!actuales) {
     return Promise.resolve(false)
   }
-  renovacionEnCurso ??= manejadores
-    .renovar()
+  renovacionEnCurso ??= conLockDeRefresh(() => actuales.renovar())
     .catch(() => false)
     .finally(() => {
       renovacionEnCurso = null
