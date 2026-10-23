@@ -4,6 +4,7 @@ import { z } from "zod"
 import { clienteHttp } from "@/compartido/api/clienteHttp"
 import { esquemaLoginRespuestaDTO } from "@/compartido/sesion/esquemas"
 import { useSesion } from "@/compartido/sesion/useSesion"
+import { claveMenuSesion } from "@/modulos/seguridad/api/menu"
 import type {
   CambioClave,
   LoginRequest,
@@ -58,10 +59,13 @@ export function useLogout() {
 
 export function useCambiarClave() {
   const { iniciarSesion, cerrarSesion } = useSesion()
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: cambiarClave,
     onSuccess: ({ datos }) => {
       if (datos) {
+        // La sesión nueva trae otro menú (vacío mientras la clave caducaba).
+        queryClient.removeQueries({ queryKey: claveMenuSesion })
         iniciarSesion(datos)
       } else {
         cerrarSesion()
@@ -76,6 +80,8 @@ export function useCambiarSucursal() {
   return useMutation({
     mutationFn: cambiarSucursal,
     onSuccess: ({ datos }) => {
+      // Se descarta el menú anterior para no mostrarlo con la sucursal nueva.
+      queryClient.removeQueries({ queryKey: claveMenuSesion })
       iniciarSesion(datos)
       // Los datos en caché pertenecen a la sucursal anterior.
       void queryClient.invalidateQueries()

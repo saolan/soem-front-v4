@@ -5,6 +5,7 @@ import {
   clienteHttp,
   establecerToken,
   registrarManejadoresSesion,
+  renovarSesion,
 } from "@/compartido/api/clienteHttp"
 import { ErrorApi } from "@/compartido/api/errores"
 
@@ -101,6 +102,27 @@ describe("clienteHttp", () => {
     expect(renovar).toHaveBeenCalledTimes(1)
     expect(fetchSimulado).toHaveBeenCalledTimes(6)
     expect(resultados.map((r) => r.datos.id)).toEqual([1, 1, 1])
+  })
+
+  it("serializa el refresh entre pestañas con un lock del navegador", async () => {
+    const request = vi.fn((_nombre: string, accion: () => Promise<unknown>) =>
+      accion()
+    )
+    Object.defineProperty(navigator, "locks", {
+      value: { request },
+      configurable: true,
+    })
+    const renovar = vi.fn(async () => true)
+    desregistrar = registrarManejadoresSesion({ renovar, alExpirar: vi.fn() })
+
+    try {
+      expect(await renovarSesion()).toBe(true)
+      expect(request).toHaveBeenCalledTimes(1)
+      expect(request.mock.calls[0]?.[0]).toBe("soem-refresh")
+      expect(renovar).toHaveBeenCalledTimes(1)
+    } finally {
+      Reflect.deleteProperty(navigator, "locks")
+    }
   })
 
   it("con 401 sin cuerpo y refresh fallido expira la sesión", async () => {

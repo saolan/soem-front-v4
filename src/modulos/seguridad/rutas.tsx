@@ -1,6 +1,7 @@
 import type { RouteObject } from "react-router"
 
 import { RUTA_CAMBIO_CLAVE, RUTA_LOGIN } from "@/compartido/sesion/GuardasRuta"
+import { rutasPendientes } from "@/compartido/utilidades/rutasMenu"
 
 /** Rutas para usuarios sin sesión. */
 export const rutasPublicasSeguridad: RouteObject[] = [
@@ -23,3 +24,22 @@ export const rutasSesionSeguridad: RouteObject[] = [
     }),
   },
 ]
+
+/** Pantallas del menú registradas en el router (aún sin implementar). */
+export const rutasPaginasSeguridad: RouteObject[] = rutasPendientes([
+  "/seguridad/menus",
+  "/seguridad/permisos",
+  "/seguridad/usuarios",
+  "/seguridad/roles",
+  "/seguridad/roles-usuarios",
+  "/seguridad/roles-permisos",
+  "/seguridad/roles-menus",
+  "/seguridad/roles-sucursales",
+  "/seguridad/roles-bodegas",
+  "/seguridad/roles-precios",
+  "/seguridad/roles-documentos",
+  "/seguridad/roles-formas-pago",
+  "/seguridad/secuenciales",
+  "/seguridad/auditorias",
+  "/seguridad/respaldos",
+])
