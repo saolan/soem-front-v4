@@ -64,7 +64,9 @@ function NodoMenu(props: PropiedadesNodo) {
           className={cn(
             claseOpcion,
             "pl-8",
-            esActual && "bg-accent font-medium text-accent-foreground"
+            // Barra decorativa (ámbar) que marca la opción actual sin mover el texto.
+            esActual &&
+              "relative bg-accent font-medium text-accent-foreground before:absolute before:inset-y-1 before:left-0 before:w-1 before:rounded-full before:bg-ambar"
           )}
         >
           {nodo.descri}
