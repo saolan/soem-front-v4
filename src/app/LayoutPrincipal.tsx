@@ -11,7 +11,9 @@ export function LayoutPrincipal() {
       <header className="flex items-center justify-between gap-2 border-b px-4 py-2 sm:px-6">
         <div className="flex items-center gap-2">
           <MenuMovil />
-          <span className="font-heading text-lg font-semibold">SOEM</span>
+          <span className="font-heading text-lg font-semibold text-primary">
+            SOEM
+          </span>
         </div>
         <div className="flex min-w-0 items-center gap-2">
           <SelectorSucursal />
