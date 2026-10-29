@@ -8,6 +8,7 @@ import {
 
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldLabel,
 } from "@/compartido/componentes/ui/field"
@@ -20,6 +21,8 @@ interface PropsCampoFormulario<T extends FieldValues> extends Omit<
   control: Control<T>
   name: Path<T>
   etiqueta: string
+  /** Texto de ayuda bajo el control, asociado con aria-describedby. */
+  descripcion?: string
 }
 
 /** Campo de texto con etiqueta y error asociados (React Hook Form). */
@@ -27,12 +30,14 @@ export function CampoFormulario<T extends FieldValues>({
   control,
   name,
   etiqueta,
+  descripcion,
   id,
   ...props
 }: PropsCampoFormulario<T>) {
   const idGenerado = useId()
   const idCampo = id ?? idGenerado
   const idError = `${idCampo}-error`
+  const idDescripcion = `${idCampo}-descripcion`
 
   return (
     <Controller
@@ -44,10 +49,20 @@ export function CampoFormulario<T extends FieldValues>({
           <Input
             {...props}
             {...field}
+            value={field.value ?? ""}
             id={idCampo}
             aria-invalid={fieldState.invalid}
-            aria-describedby={fieldState.error ? idError : undefined}
+            aria-describedby={
+              [descripcion && idDescripcion, fieldState.error && idError]
+                .filter(Boolean)
+                .join(" ") || undefined
+            }
           />
+          {descripcion && (
+            <FieldDescription id={idDescripcion}>
+              {descripcion}
+            </FieldDescription>
+          )}
           {fieldState.error && (
             <FieldError id={idError} errors={[fieldState.error]} />
           )}

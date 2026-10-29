@@ -36,7 +36,7 @@ export function MenuMovil() {
       </SheetTrigger>
       <SheetContent side="left" showCloseButton={false} className="w-72 gap-0">
         <SheetHeader className="flex-row items-center justify-between border-b">
-          <SheetTitle>SOEM</SheetTitle>
+          <SheetTitle className="text-primary">SOEM</SheetTitle>
           <SheetClose
             render={
               <Button
