@@ -42,9 +42,8 @@ export const clavesSucursales = {
 
 /**
  * Tras crear o modificar: el detalle se toma de la respuesta (evita un GET) y
- * el resto del recurso se invalida, porque marcar una matriz desmarca la
- * anterior. La invalidación no se espera: así el formulario se libera en
- * cuanto responde el guardado.
+ * el resto del recurso (listados) se invalida. La invalidación no se espera:
+ * así el formulario se libera en cuanto responde el guardado.
  */
 function actualizarCacheSucursal(
   queryClient: QueryClient,
@@ -117,15 +116,45 @@ export function useModificarSucursal(id: number) {
   })
 }
 
+/**
+ * Revierte el borrado lógico (PUT /sucursales/{id}/activar, mismo permiso que
+ * eliminar). La respuesta es la sucursal activa: actualiza el detalle sin otro
+ * GET.
+ */
+export function useActivarSucursal() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) =>
+      clienteHttp(`/sucursales/${id}/activar`, {
+        metodo: "PUT",
+        esquema: esquemaSucursalDTO,
+      }),
+    onSuccess: (respuesta) => actualizarCacheSucursal(queryClient, respuesta),
+  })
+}
+
 /** Borrado lógico: el back-end deja la sucursal con `estado = false`. */
 export function useEliminarSucursal() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: number) =>
       clienteHttp(`/sucursales/${id}`, { metodo: "DELETE", esquema: z.null() }),
-    // Sin esperar la recarga del listado: el diálogo se cierra al responder.
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: clavesSucursales.todas })
+    // El detalle se marca inactivo en caché en lugar de volver a pedirlo (al
+    // eliminar desde la edición seguiría activo y se recargaría justo antes
+    // de volver al listado). Sin esperar la recarga del resto: el diálogo se
+    // cierra al responder.
+    onSuccess: (_respuesta, id) => {
+      queryClient.setQueryData<RespuestaHttp<SucursalDTO>>(
+        clavesSucursales.detalle(id),
+        (previa) =>
+          previa && { ...previa, datos: { ...previa.datos, estado: false } }
+      )
+      void queryClient.invalidateQueries({
+        queryKey: clavesSucursales.todas,
+        predicate: ({ queryKey }) =>
+          queryKey[1] !== "certificado" &&
+          !(queryKey[1] === "detalle" && queryKey[2] === id),
+      })
     },
   })
 }

@@ -10,6 +10,14 @@ export const esquemaSucuCertEmisDTO = z.object({
 
 export type SucuCertEmisDTO = z.infer<typeof esquemaSucuCertEmisDTO>
 
+// Longitudes máximas de SucuCertEmisDTO (@Size). Las usan el esquema y el
+// `maxLength` de cada input.
+export const LONGITUDES_CERTIFICADO = {
+  ruta: 100,
+  descri: 100,
+  clave: 32,
+} as const
+
 /**
  * Formulario del certificado. La clave solo es obligatoria al configurar un
  * certificado nuevo: en una modificación, si queda vacía se conserva la
@@ -29,15 +37,24 @@ export function esquemaCertificadoFormulario(existe: boolean) {
       .string()
       .trim()
       .min(1, "La ruta del certificado es obligatoria")
-      .max(100, "La ruta no puede superar los 100 caracteres"),
+      .max(
+        LONGITUDES_CERTIFICADO.ruta,
+        "La ruta no puede superar los 100 caracteres"
+      ),
     descri: z
       .string()
       .trim()
       .min(1, "La descripción del certificado es obligatoria")
-      .max(100, "La descripción no puede superar los 100 caracteres"),
+      .max(
+        LONGITUDES_CERTIFICADO.descri,
+        "La descripción no puede superar los 100 caracteres"
+      ),
     clave: z
       .string()
-      .max(32, "La clave no puede superar los 32 caracteres")
+      .max(
+        LONGITUDES_CERTIFICADO.clave,
+        "La clave no puede superar los 32 caracteres"
+      )
       .refine(
         (valor) => existe || valor.length > 0,
         "La clave del certificado es obligatoria"

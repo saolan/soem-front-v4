@@ -47,10 +47,12 @@ describe("esquemaSucursalFormulario", () => {
         ruc: "17900A",
         correo: "no-es-correo",
         telef1: "12345678901",
+        rucCont: "1712345678",
       })
     ).toEqual({
       codigo: "El código es obligatorio",
-      ruc: "El RUC debe tener entre 10 y 13 dígitos numéricos",
+      ruc: "El RUC debe tener exactamente 13 dígitos numéricos",
+      rucCont: "El RUC contable debe tener exactamente 13 dígitos numéricos",
       correo: "El correo no tiene un formato válido",
       telef1: "El teléfono principal no puede superar los 10 caracteres",
     })
@@ -71,6 +73,8 @@ describe("esquemaSucursalDTO", () => {
       ...validos,
       sucursalId: 1,
       obligaCont: null,
+      // De solo lectura: llega en la respuesta, nunca en el formulario.
+      estado: true,
     }
     void [nombreCome, telef2, contriEspe, logoti, obligaCont]
     expect(esquemaSucursalDTO.safeParse(dto).success).toBe(true)

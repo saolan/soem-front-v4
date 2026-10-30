@@ -4,15 +4,19 @@ import {
   rutasPendientes,
   type HandleRutaMenu,
 } from "@/compartido/utilidades/rutasMenu"
+import {
+  RUTA_NUEVA_SUCURSAL,
+  RUTA_SUCURSALES,
+} from "@/modulos/configuracion/constantes"
 
 // Las subrutas (nueva, edición) se autorizan con la página del menú.
 const menuSucursales = {
-  rutaMenu: "/configuracion/sucursales",
+  rutaMenu: RUTA_SUCURSALES,
 } satisfies HandleRutaMenu
 
 const rutasSucursales: RouteObject[] = [
   {
-    path: "/configuracion/sucursales",
+    path: RUTA_SUCURSALES,
     handle: menuSucursales,
     lazy: async () => ({
       Component: (
@@ -21,7 +25,7 @@ const rutasSucursales: RouteObject[] = [
     }),
   },
   {
-    path: "/configuracion/sucursales/nueva",
+    path: RUTA_NUEVA_SUCURSAL,
     handle: menuSucursales,
     lazy: async () => ({
       Component: (
@@ -30,7 +34,7 @@ const rutasSucursales: RouteObject[] = [
     }),
   },
   {
-    path: "/configuracion/sucursales/:sucursalId",
+    path: `${RUTA_SUCURSALES}/:sucursalId`,
     handle: menuSucursales,
     lazy: async () => ({
       Component: (

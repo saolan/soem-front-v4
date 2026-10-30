@@ -41,12 +41,15 @@ export function BotonIcono({
 export function EnlaceIcono({
   etiqueta,
   ruta,
+  estado,
   "aria-label": nombreAccesible,
   className,
   children,
 }: {
   etiqueta: string
   ruta: string
+  /** `state` de la navegación (ej. `estadoRetorno` del listado). */
+  estado?: unknown
   "aria-label"?: string
   className?: string
   children: React.ReactNode
@@ -57,6 +60,7 @@ export function EnlaceIcono({
         render={
           <Link
             to={ruta}
+            state={estado}
             aria-label={nombreAccesible ?? etiqueta}
             className={buttonVariants({
               variant: "ghost",

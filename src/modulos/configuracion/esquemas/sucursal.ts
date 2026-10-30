@@ -28,6 +28,31 @@ export const esquemaSucursalDTO = z.object({
 
 export type SucursalDTO = z.infer<typeof esquemaSucursalDTO>
 
+// Longitudes máximas de SucursalDTO (@Size; ruc y rucCont por su @Pattern de
+// 13 dígitos). Las usan el esquema y el `maxLength` de cada input.
+export const LONGITUDES_SUCURSAL = {
+  codigo: 32,
+  descri: 100,
+  ruc: 13,
+  razonSoci: 256,
+  nombreCome: 256,
+  ciudad: 100,
+  direcc: 100,
+  direccEsta: 100,
+  telef1: 10,
+  telef2: 10,
+  correo: 100,
+  repres: 100,
+  represCedu: 13,
+  represDire: 100,
+  rucCont: 13,
+  contriEspe: 13,
+  logoti: 255,
+} as const
+
+// ruc y rucCont: exactamente 13 dígitos (@Pattern de SucursalDTO).
+const RUC_13_DIGITOS = /^[0-9]{13}$/
+
 const obligatorio = (mensaje: string, max: number, mensajeMax: string) =>
   z.string().trim().min(1, mensaje).max(max, mensajeMax)
 
@@ -35,17 +60,19 @@ const opcional = (max: number, mensajeMax: string) =>
   z.string().trim().max(max, mensajeMax)
 
 // Replica las reglas de Bean Validation de SucursalDTO. La validación
-// definitiva la hace el back-end (unicidad de código y RUC, etc.).
+// definitiva la hace el back-end (unicidad de código y RUC, etc.). `estado`
+// es de solo lectura en la API (POST crea la sucursal activa): el formulario
+// lo edita y la página lo aplica con DELETE o PUT /{id}/activar.
 export const esquemaSucursalFormulario = z.object({
   codigo: obligatorio(
     "El código es obligatorio",
-    32,
+    LONGITUDES_SUCURSAL.codigo,
     "El código no puede superar los 32 caracteres"
   ),
   matriz: z.boolean(),
   descri: obligatorio(
     "La descripción es obligatoria",
-    100,
+    LONGITUDES_SUCURSAL.descri,
     "La descripción no puede superar los 100 caracteres"
   ),
   ruc: z
@@ -53,75 +80,81 @@ export const esquemaSucursalFormulario = z.object({
     .trim()
     .min(1, "El RUC es obligatorio")
     .regex(
-      /^[0-9]{10,13}$/,
-      "El RUC debe tener entre 10 y 13 dígitos numéricos"
+      RUC_13_DIGITOS,
+      "El RUC debe tener exactamente 13 dígitos numéricos"
     ),
   razonSoci: obligatorio(
     "La razón social es obligatoria",
-    256,
+    LONGITUDES_SUCURSAL.razonSoci,
     "La razón social no puede superar los 256 caracteres"
   ),
   nombreCome: opcional(
-    256,
+    LONGITUDES_SUCURSAL.nombreCome,
     "El nombre comercial no puede superar los 256 caracteres"
   ),
   ciudad: obligatorio(
     "La ciudad es obligatoria",
-    100,
+    LONGITUDES_SUCURSAL.ciudad,
     "La ciudad no puede superar los 100 caracteres"
   ),
   direcc: obligatorio(
     "La dirección es obligatoria",
-    100,
+    LONGITUDES_SUCURSAL.direcc,
     "La dirección no puede superar los 100 caracteres"
   ),
   direccEsta: obligatorio(
     "La dirección del establecimiento es obligatoria",
-    100,
+    LONGITUDES_SUCURSAL.direccEsta,
     "La dirección del establecimiento no puede superar los 100 caracteres"
   ),
   telef1: obligatorio(
     "El teléfono principal es obligatorio",
-    10,
+    LONGITUDES_SUCURSAL.telef1,
     "El teléfono principal no puede superar los 10 caracteres"
   ),
   telef2: opcional(
-    10,
+    LONGITUDES_SUCURSAL.telef2,
     "El teléfono secundario no puede superar los 10 caracteres"
   ),
   correo: z
     .string()
     .trim()
     .min(1, "El correo es obligatorio")
-    .max(100, "El correo no puede superar los 100 caracteres")
+    .max(
+      LONGITUDES_SUCURSAL.correo,
+      "El correo no puede superar los 100 caracteres"
+    )
     .pipe(z.email("El correo no tiene un formato válido")),
   repres: obligatorio(
     "El representante legal es obligatorio",
-    100,
+    LONGITUDES_SUCURSAL.repres,
     "El representante legal no puede superar los 100 caracteres"
   ),
   represCedu: obligatorio(
     "La cédula del representante legal es obligatoria",
-    13,
+    LONGITUDES_SUCURSAL.represCedu,
     "La cédula del representante legal no puede superar los 13 caracteres"
   ),
   represDire: obligatorio(
     "La dirección del representante legal es obligatoria",
-    100,
+    LONGITUDES_SUCURSAL.represDire,
     "La dirección del representante legal no puede superar los 100 caracteres"
   ),
-  rucCont: obligatorio(
-    "El RUC contable es obligatorio",
-    13,
-    "El RUC contable no puede superar los 13 caracteres"
-  ),
+  rucCont: z
+    .string()
+    .trim()
+    .min(1, "El RUC contable es obligatorio")
+    .regex(
+      RUC_13_DIGITOS,
+      "El RUC contable debe tener exactamente 13 dígitos numéricos"
+    ),
   contriEspe: opcional(
-    13,
+    LONGITUDES_SUCURSAL.contriEspe,
     "El contribuyente especial no puede superar los 13 caracteres"
   ),
   obligaCont: z.boolean(),
   logoti: opcional(
-    255,
+    LONGITUDES_SUCURSAL.logoti,
     "La ruta del logotipo no puede superar los 255 caracteres"
   ),
   estado: z.boolean(),
@@ -184,8 +217,13 @@ export function aFormularioSucursal(dto: SucursalDTO): SucursalFormulario {
 
 const vacioANull = (valor: string) => (valor === "" ? null : valor)
 
-/** Cuerpo de POST/PUT: los opcionales vacíos viajan como null. */
-export function aCuerpoSucursal(valores: SucursalFormulario) {
+/**
+ * Cuerpo de POST/PUT: los opcionales vacíos viajan como null y sin `estado`
+ * (la API lo ignora; se cambia con DELETE y PUT /{id}/activar).
+ */
+export function aCuerpoSucursal(formulario: SucursalFormulario) {
+  const { estado, ...valores } = formulario
+  void estado
   return {
     ...valores,
     nombreCome: vacioANull(valores.nombreCome),
