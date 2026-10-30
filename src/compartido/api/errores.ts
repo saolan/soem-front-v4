@@ -30,6 +30,18 @@ export function mensajePorEstado(estado: number): string {
   )
 }
 
+/**
+ * Los errores 4xx (validación, permisos, no encontrado) no mejoran al
+ * reintentar; sí los fallos de red o del servidor.
+ */
+export function esReintentable(error: unknown): boolean {
+  return !(
+    error instanceof ErrorApi &&
+    error.estado >= 400 &&
+    error.estado < 500
+  )
+}
+
 export function mensajeDeError(error: unknown): string {
   return error instanceof ErrorApi ? error.message : mensajePorEstado(-1)
 }

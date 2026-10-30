@@ -6,11 +6,11 @@ import {
   type Path,
 } from "react-hook-form"
 
+import { EtiquetaCampo } from "@/compartido/componentes/EtiquetaCampo"
 import {
   Field,
   FieldDescription,
   FieldError,
-  FieldLabel,
 } from "@/compartido/componentes/ui/field"
 import { Input } from "@/compartido/componentes/ui/input"
 
@@ -23,6 +23,8 @@ interface PropsCampoFormulario<T extends FieldValues> extends Omit<
   etiqueta: string
   /** Texto de ayuda bajo el control, asociado con aria-describedby. */
   descripcion?: string
+  /** Marca el campo como obligatorio (asterisco y `aria-required`). */
+  obligatorio?: boolean
 }
 
 /** Campo de texto con etiqueta y error asociados (React Hook Form). */
@@ -31,6 +33,7 @@ export function CampoFormulario<T extends FieldValues>({
   name,
   etiqueta,
   descripcion,
+  obligatorio = false,
   id,
   ...props
 }: PropsCampoFormulario<T>) {
@@ -45,12 +48,15 @@ export function CampoFormulario<T extends FieldValues>({
       name={name}
       render={({ field, fieldState }) => (
         <Field data-invalid={fieldState.invalid}>
-          <FieldLabel htmlFor={idCampo}>{etiqueta}</FieldLabel>
+          <EtiquetaCampo htmlFor={idCampo} obligatorio={obligatorio}>
+            {etiqueta}
+          </EtiquetaCampo>
           <Input
             {...props}
             {...field}
             value={field.value ?? ""}
             id={idCampo}
+            aria-required={obligatorio || undefined}
             aria-invalid={fieldState.invalid}
             aria-describedby={
               [descripcion && idDescripcion, fieldState.error && idError]

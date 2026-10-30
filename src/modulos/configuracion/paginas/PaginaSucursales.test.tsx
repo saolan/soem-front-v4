@@ -2,6 +2,7 @@ import { cleanup, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import { useRutaRetorno } from "@/compartido/hooks/useRutaRetorno"
 import {
   renderizarPagina,
   respuestaApi,
@@ -49,8 +50,18 @@ function renderizar(permisos: string[], url = "/configuracion/sucursales") {
           </>
         ),
       },
+      {
+        path: "/configuracion/sucursales/:sucursalId",
+        element: <RutaRetorno />,
+      },
     ],
   })
+}
+
+/** Muestra a qué ruta volvería el detalle (useRutaRetorno). */
+function RutaRetorno() {
+  const { ruta } = useRutaRetorno("/configuracion/sucursales")
+  return <output aria-label="Ruta de retorno">{ruta}</output>
 }
 
 const TODOS = [
@@ -172,6 +183,37 @@ describe("PaginaSucursales", () => {
     )
   })
 
+  it("una sucursal inactiva ofrece Activar en lugar de Eliminar", async () => {
+    fetchSimulado.mockImplementation(async (_url, init) =>
+      init?.method === "PUT"
+        ? respuestaApi(sucursal, 200, {
+            mensaje: "Sucursal activada correctamente",
+          })
+        : respuestaApi([{ ...sucursal, estado: false }], 200, { paginacion })
+    )
+    const usuario = userEvent.setup()
+    renderizar(TODOS)
+    await screen.findAllByText("Matriz Quito")
+    const tabla = screen.getByRole("table")
+
+    expect(
+      within(tabla).queryByRole("button", { name: "Eliminar Matriz Quito" })
+    ).toBeNull()
+    await usuario.click(
+      within(tabla).getByRole("button", { name: "Activar Matriz Quito" })
+    )
+
+    await vi.waitFor(() =>
+      expect(
+        fetchSimulado.mock.calls.some(
+          ([url, init]) =>
+            String(url) === "/api/v1/sucursales/1/activar" &&
+            init?.method === "PUT"
+        )
+      ).toBe(true)
+    )
+  })
+
   it("oculta las acciones sin permiso", async () => {
     renderizar(["configuracion-crud:buscar"])
     await screen.findAllByText("Matriz Quito")
@@ -182,5 +224,21 @@ describe("PaginaSucursales", () => {
     expect(
       within(tabla).getByRole("link", { name: "Ver Matriz Quito" })
     ).toBeTruthy()
+  })
+
+  it("Modificar lleva el retorno al listado con sus filtros", async () => {
+    const usuario = userEvent.setup()
+    renderizar(TODOS, "/configuracion/sucursales?pagina=1&descri=matriz")
+    await screen.findAllByText("Matriz Quito")
+
+    await usuario.click(
+      within(screen.getByRole("table")).getByRole("link", {
+        name: "Modificar Matriz Quito",
+      })
+    )
+
+    expect((await screen.findByLabelText("Ruta de retorno")).textContent).toBe(
+      "/configuracion/sucursales?pagina=1&descri=matriz"
+    )
   })
 })

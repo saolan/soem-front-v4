@@ -4,6 +4,7 @@ import {
   createMemoryRouter,
   RouterProvider,
   useLocation,
+  type InitialEntry,
   type RouteObject,
 } from "react-router"
 import { vi } from "vitest"
@@ -38,7 +39,8 @@ export function renderizarPagina({
   permisos,
 }: {
   rutas: RouteObject[]
-  url: string
+  /** Ruta inicial; como objeto permite simular el `state` de la navegación. */
+  url: InitialEntry
   permisos: string[]
 }) {
   const sesion: ValorSesion = {

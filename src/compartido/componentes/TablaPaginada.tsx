@@ -11,8 +11,9 @@ import {
   type Updater,
 } from "@tanstack/react-table"
 import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react"
+import { useEffect } from "react"
 
-import { mensajeDeError } from "@/compartido/api/errores"
+import { esReintentable, mensajeDeError } from "@/compartido/api/errores"
 import type { Paginacion } from "@/compartido/api/esquemas"
 import { AvisoError } from "@/compartido/componentes/AvisoError"
 import { ControlesPaginacion } from "@/compartido/componentes/ControlesPaginacion"
@@ -133,6 +134,16 @@ export function TablaPaginada<T extends RowData, C extends string>({
     },
   })
 
+  // Una página posterior a la última (p. ej. tras eliminar el único registro
+  // de la última página con un filtro) se corrige a la última que existe.
+  const totalPaginas = paginacion?.totalPaginas ?? 0
+  const paginaActual = paginacion?.pagina ?? 0
+  useEffect(() => {
+    if (totalPaginas > 0 && paginaActual > totalPaginas) {
+      onPagina(totalPaginas)
+    }
+  }, [paginaActual, totalPaginas, onPagina])
+
   const ordenarPor = (campo: string) =>
     onOrden({
       ordenarPor: campo as C,
@@ -146,9 +157,11 @@ export function TablaPaginada<T extends RowData, C extends string>({
     return (
       <div className="flex flex-col items-start gap-3">
         <AvisoError mensaje={mensajeDeError(error)} />
-        <Button variant="outline" onClick={onReintentar}>
-          Reintentar
-        </Button>
+        {esReintentable(error) && (
+          <Button variant="outline" onClick={onReintentar}>
+            Reintentar
+          </Button>
+        )}
       </div>
     )
   }
