@@ -21,7 +21,8 @@ independiente que consume la API REST del back-end ubicado en `../soem`.
     (`RespuestaApi`, `Paginacion`, `ErrorCampo`, `ComboDTO`)
   - Seguridad: `../soem/src/main/java/com/saolan/soem/compartido/seguridad`
     y `../soem/src/main/java/com/saolan/soem/seguridad`
-  - Esquema de BD: `../soem/db/soem-postgres-4.sql`
+  - Esquema de BD: migraciones Flyway en
+    `../soem/src/main/resources/db/migration/` (`V*.sql`, en orden de versión)
 - Los nombres de campos del front deben ser **idénticos** a los del DTO
   (`descri`, `apelli`, `cedulaRuc`, `razonSoci`, `fechaNaci`...). No los
   traduzcas, abrevies ni "embellezcas": la etiqueta visible puede ser legible,
@@ -107,8 +108,6 @@ src/
       rutas.tsx             # rutas del módulo (con lazy loading)
 ```
 
-- `src/main.tsx` es el punto de entrada (lo referencia `index.html`). `App`
-  se mueve a `src/app/` al crear el router.
 - Los tipos de los DTO se derivan de los esquemas Zod (`z.infer`); no declares
   interfaces duplicadas a mano.
 - `compartido` nunca importa de `modulos`. Por eso `compartido/sesion/`

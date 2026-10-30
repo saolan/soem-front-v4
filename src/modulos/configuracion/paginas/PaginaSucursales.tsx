@@ -1,6 +1,6 @@
 import { PlusIcon } from "lucide-react"
-import { useMemo, useState } from "react"
-import { Link } from "react-router"
+import { useCallback, useMemo, useState } from "react"
+import { Link, useLocation } from "react-router"
 import { toast } from "sonner"
 
 import { mensajeDeError } from "@/compartido/api/errores"
@@ -15,11 +15,17 @@ import { Badge } from "@/compartido/componentes/ui/badge"
 import { buttonVariants } from "@/compartido/componentes/ui/button"
 import { Separator } from "@/compartido/componentes/ui/separator"
 import { useParametrosListado } from "@/compartido/hooks/useParametrosListado"
+import { estadoRetorno } from "@/compartido/hooks/useRutaRetorno"
 import { useTienePermiso } from "@/compartido/sesion/useTienePermiso"
 import {
+  useActivarSucursal,
   useEliminarSucursal,
   useSucursales,
 } from "@/modulos/configuracion/api/sucursales"
+import {
+  RECURSO_CONFIGURACION,
+  RUTA_NUEVA_SUCURSAL,
+} from "@/modulos/configuracion/constantes"
 import { AccionesSucursal } from "@/modulos/configuracion/componentes/AccionesSucursal"
 import { FiltrosSucursales } from "@/modulos/configuracion/componentes/FiltrosSucursales"
 import { TarjetaSucursal } from "@/modulos/configuracion/componentes/TarjetaSucursal"
@@ -29,9 +35,6 @@ import {
   type SucursalDTO,
 } from "@/modulos/configuracion/esquemas/sucursal"
 
-// Permisos del módulo (SucursalControlador#RECURSO).
-const RECURSO = "configuracion-crud"
-
 const configuracionListado = {
   camposOrden: CAMPOS_ORDEN_SUCURSAL,
   ordenPredeterminado: { ordenarPor: "descri", direccion: "asc" },
@@ -39,23 +42,41 @@ const configuracionListado = {
 } as const
 
 export function PaginaSucursales() {
+  const { search } = useLocation()
   const listado = useParametrosListado(configuracionListado)
   const { pagina, tamanio, orden, filtros } = listado
   const sucursales = useSucursales({ pagina, tamanio, orden, filtros })
   const eliminar = useEliminarSucursal()
   const [porEliminar, setPorEliminar] = useState<SucursalDTO | null>(null)
 
-  const puedeCrear = useTienePermiso(RECURSO, "crear")
-  const puedeModificar = useTienePermiso(RECURSO, "modificar")
-  const puedeEliminar = useTienePermiso(RECURSO, "eliminar")
+  const puedeCrear = useTienePermiso(RECURSO_CONFIGURACION, "crear")
+  const puedeModificar = useTienePermiso(RECURSO_CONFIGURACION, "modificar")
+  const puedeEliminar = useTienePermiso(RECURSO_CONFIGURACION, "eliminar")
 
-  const acciones = (sucursal: SucursalDTO) => (
-    <AccionesSucursal
-      sucursal={sucursal}
-      puedeModificar={puedeModificar}
-      puedeEliminar={puedeEliminar}
-      onEliminar={setPorEliminar}
-    />
+  // Reactivar no es destructivo: sin confirmación.
+  const { mutate: mutarActivar, isPending: activando } = useActivarSucursal()
+  const activar = useCallback(
+    (sucursal: SucursalDTO) =>
+      mutarActivar(sucursal.sucursalId, {
+        onSuccess: ({ mensaje }) => toast.success(mensaje),
+        onError: (error) => toast.error(mensajeDeError(error)),
+      }),
+    [mutarActivar]
+  )
+
+  // Compartido por la columna de la tabla y la tarjeta móvil.
+  const acciones = useCallback(
+    (sucursal: SucursalDTO) => (
+      <AccionesSucursal
+        sucursal={sucursal}
+        puedeModificar={puedeModificar}
+        puedeEliminar={puedeEliminar}
+        onEliminar={setPorEliminar}
+        onActivar={activar}
+        activando={activando}
+      />
+    ),
+    [puedeModificar, puedeEliminar, activar, activando]
   )
 
   const columnas = useMemo<ColumnaTabla<SucursalDTO>[]>(
@@ -101,17 +122,10 @@ export function PaginaSucursales() {
         header: "Acciones",
         meta: { clase: "w-28" },
         enableSorting: false,
-        cell: ({ row }) => (
-          <AccionesSucursal
-            sucursal={row.original}
-            puedeModificar={puedeModificar}
-            puedeEliminar={puedeEliminar}
-            onEliminar={setPorEliminar}
-          />
-        ),
+        cell: ({ row }) => acciones(row.original),
       },
     ],
-    [puedeModificar, puedeEliminar]
+    [acciones]
   )
 
   const confirmarEliminacion = () => {
@@ -131,7 +145,8 @@ export function PaginaSucursales() {
         <EncabezadoPagina titulo="Sucursales">
           {puedeCrear && (
             <Link
-              to="/configuracion/sucursales/nueva"
+              to={RUTA_NUEVA_SUCURSAL}
+              state={estadoRetorno(search)}
               className={buttonVariants({ className: "w-24" })}
             >
               <PlusIcon aria-hidden="true" />

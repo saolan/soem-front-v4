@@ -1,16 +1,20 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
 import { aplicarErroresFormulario } from "@/compartido/api/aplicarErroresFormulario"
-import { mensajeDeError } from "@/compartido/api/errores"
+import { esReintentable, mensajeDeError } from "@/compartido/api/errores"
 import { AvisoError } from "@/compartido/componentes/AvisoError"
 import { CampoFormulario } from "@/compartido/componentes/CampoFormulario"
 import { CampoSeleccion } from "@/compartido/componentes/CampoSeleccion"
 import { DialogoConfirmacion } from "@/compartido/componentes/DialogoConfirmacion"
+import {
+  GrillaCampos,
+  SeccionFormulario,
+} from "@/compartido/componentes/SeccionFormulario"
+import { Badge } from "@/compartido/componentes/ui/badge"
 import { Button } from "@/compartido/componentes/ui/button"
-import { FieldGroup } from "@/compartido/componentes/ui/field"
 import { Skeleton } from "@/compartido/componentes/ui/skeleton"
 import {
   useCertificadoSucursal,
@@ -21,6 +25,7 @@ import {
 import {
   CAMPOS_CERTIFICADO,
   esquemaCertificadoFormulario,
+  LONGITUDES_CERTIFICADO,
   type CertificadoFormulario,
   type CertificadoValidado,
   type SucuCertEmisDTO,
@@ -34,6 +39,10 @@ interface PropsCertificado {
   sucursalId: number
   puedeModificar: boolean
   puedeEliminar: boolean
+  /** Informa si hay cambios sin guardar (aviso al salir de la página). */
+  onCambiosPendientes?: (hayCambios: boolean) => void
+  /** Tras guardar el certificado (ej. volver al listado). */
+  onGuardado?: () => void
 }
 
 function Formulario({
@@ -41,6 +50,8 @@ function Formulario({
   certificado,
   puedeModificar,
   puedeEliminar,
+  onCambiosPendientes,
+  onGuardado,
 }: PropsCertificado & { certificado: SucuCertEmisDTO | null }) {
   const existe = certificado !== null
   const emisores = useComboCertificadosEmisor()
@@ -62,12 +73,23 @@ function Formulario({
     },
   })
   const { control } = formulario
+  // Al configurarlo por primera vez se puede enviar sin cambios (para ver
+  // las validaciones); al modificarlo, solo con cambios.
+  const { isDirty } = formulario.formState
+  const sinCambios = existe && !isDirty
+
+  useEffect(() => {
+    onCambiosPendientes?.(isDirty)
+  }, [isDirty, onCambiosPendientes])
 
   const enviar = formulario.handleSubmit(async (valores) => {
     setAviso(null)
     try {
       const { mensaje } = await guardar.mutateAsync(valores)
       toast.success(mensaje)
+      // La clave nunca se devuelve: tras guardar vuelve a quedar vacía.
+      formulario.reset({ ...valores, clave: "" })
+      onGuardado?.()
     } catch (error) {
       setAviso(
         aplicarErroresFormulario(
@@ -94,38 +116,43 @@ function Formulario({
 
   return (
     <form onSubmit={enviar} noValidate className="flex flex-col gap-6">
-      {!existe && (
-        <p className="text-sm text-muted-foreground">
-          La sucursal aún no tiene un certificado de firma electrónica.
-        </p>
-      )}
       <AvisoError mensaje={aviso} />
       <AvisoError
         mensaje={emisores.isError ? mensajeDeError(emisores.error) : null}
       />
       <fieldset disabled={!puedeModificar}>
-        <FieldGroup className="grid gap-4 sm:grid-cols-2">
+        <GrillaCampos className="xl:grid-cols-2">
           <CampoSeleccion
             control={control}
             name="certEmisId"
             etiqueta="Emisor del certificado"
+            obligatorio={puedeModificar}
             opciones={emisores.data ?? []}
+            // Sin la lista (cargando o con error) no se sabe si está inactivo.
+            cargando={!emisores.isSuccess}
+            etiquetaNoDisponible="Emisor inactivo, elija otro"
             disabled={!puedeModificar || emisores.isPending}
           />
           <CampoFormulario
             control={control}
             name="descri"
+            maxLength={LONGITUDES_CERTIFICADO.descri}
             etiqueta="Descripción del certificado"
+            obligatorio={puedeModificar}
           />
           <CampoFormulario
             control={control}
             name="ruta"
+            maxLength={LONGITUDES_CERTIFICADO.ruta}
             etiqueta="Ruta del archivo del certificado"
+            obligatorio={puedeModificar}
           />
           <CampoFormulario
             control={control}
             name="clave"
+            maxLength={LONGITUDES_CERTIFICADO.clave}
             etiqueta="Clave del certificado"
+            obligatorio={puedeModificar && !existe}
             type="password"
             autoComplete="new-password"
             descripcion={
@@ -134,11 +161,11 @@ function Formulario({
                 : undefined
             }
           />
-        </FieldGroup>
+        </GrillaCampos>
       </fieldset>
       <div className="flex flex-wrap gap-2">
         {puedeModificar && (
-          <Button type="submit" disabled={guardar.isPending}>
+          <Button type="submit" disabled={guardar.isPending || sinCambios}>
             {guardar.isPending ? "Guardando…" : "Guardar certificado"}
           </Button>
         )}
@@ -165,8 +192,7 @@ function Formulario({
   )
 }
 
-/** Certificado de firma electrónica de la sucursal (sub-recurso). */
-export function FormularioCertificado(props: PropsCertificado) {
+function ContenidoCertificado(props: PropsCertificado) {
   const certificado = useCertificadoSucursal(props.sucursalId)
 
   if (certificado.isPending) {
@@ -182,9 +208,11 @@ export function FormularioCertificado(props: PropsCertificado) {
     return (
       <div className="flex flex-col items-start gap-3">
         <AvisoError mensaje={mensajeDeError(certificado.error)} />
-        <Button variant="outline" onClick={() => void certificado.refetch()}>
-          Reintentar
-        </Button>
+        {esReintentable(certificado.error) && (
+          <Button variant="outline" onClick={() => void certificado.refetch()}>
+            Reintentar
+          </Button>
+        )}
       </div>
     )
   }
@@ -196,5 +224,35 @@ export function FormularioCertificado(props: PropsCertificado) {
       {...props}
       certificado={certificado.data}
     />
+  )
+}
+
+/** Certificado de firma electrónica de la sucursal (sub-recurso). */
+export function FormularioCertificado(props: PropsCertificado) {
+  // Misma consulta que ContenidoCertificado (comparten caché).
+  const certificado = useCertificadoSucursal(props.sucursalId)
+  const existe = certificado.isSuccess && certificado.data !== null
+  // Sin certificado ni permiso para configurarlo, basta con la descripción.
+  const soloAviso = certificado.isSuccess && !existe && !props.puedeModificar
+
+  return (
+    <SeccionFormulario
+      titulo="Certificado de firma electrónica"
+      descripcion={
+        certificado.isSuccess && !existe
+          ? "La sucursal aún no tiene un certificado de firma electrónica."
+          : undefined
+      }
+      accion={
+        certificado.isSuccess &&
+        (existe ? (
+          <Badge variant="secondary">Configurado</Badge>
+        ) : (
+          <Badge variant="outline">Sin certificado</Badge>
+        ))
+      }
+    >
+      {!soloAviso && <ContenidoCertificado {...props} />}
+    </SeccionFormulario>
   )
 }
