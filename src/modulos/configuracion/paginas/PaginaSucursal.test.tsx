@@ -533,8 +533,14 @@ describe("PaginaSucursal", () => {
         screen.getByRole("button", { name: "Guardar certificado" })
       )
 
+      const dialogo = await screen.findByRole("alertdialog", {
+        name: "Cambios sin guardar",
+      })
+      // Solo falta guardar la sucursal: el certificado ya se guardó.
       expect(
-        await screen.findByRole("alertdialog", { name: "Cambios sin guardar" })
+        within(dialogo).getByText(
+          "Hay cambios sin guardar en los datos de la sucursal. Si sale ahora, se perderán. ¿Desea salir sin guardar?"
+        )
       ).toBeTruthy()
       expect(screen.getByLabelText("Ubicación").textContent).toBe(
         "/configuracion/sucursales/7"
@@ -617,6 +623,11 @@ describe("PaginaSucursal", () => {
       const dialogo = await screen.findByRole("alertdialog", {
         name: "Cambios sin guardar",
       })
+      expect(
+        within(dialogo).getByText(
+          "Hay cambios sin guardar en el certificado de firma electrónica. Si sale ahora, se perderán. ¿Desea salir sin guardar?"
+        )
+      ).toBeTruthy()
       await usuario.click(
         within(dialogo).getByRole("button", { name: "Cancelar" })
       )
@@ -628,6 +639,27 @@ describe("PaginaSucursal", () => {
       expect(screen.getByLabelText("Ubicación").textContent).toBe(
         "/configuracion/sucursales/7"
       )
+    })
+
+    it("al salir con ambos formularios pendientes los nombra en el aviso", async () => {
+      const usuario = userEvent.setup()
+      renderizar("/configuracion/sucursales/7")
+
+      await usuario.type(await screen.findByLabelText("Descripción"), " 2")
+      await usuario.type(
+        screen.getByLabelText("Descripción del certificado"),
+        " 2"
+      )
+      await usuario.click(screen.getByRole("button", { name: "Cancelar" }))
+
+      const dialogo = await screen.findByRole("alertdialog", {
+        name: "Cambios sin guardar",
+      })
+      expect(
+        within(dialogo).getByText(
+          "Hay cambios sin guardar en los datos de la sucursal y el certificado de firma electrónica. Si sale ahora, se perderán. ¿Desea salir sin guardar?"
+        )
+      ).toBeTruthy()
     })
 
     it("cancelar vuelve al listado con sus filtros", async () => {

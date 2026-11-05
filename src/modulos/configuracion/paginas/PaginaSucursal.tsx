@@ -31,6 +31,10 @@ import {
   type SucursalFormulario,
 } from "@/modulos/configuracion/esquemas/sucursal"
 
+// Qué se perdería al salir con cambios sin guardar (aviso de salida).
+const DATOS_SUCURSAL = "los datos de la sucursal"
+const DATOS_CERTIFICADO = "el certificado de firma electrónica"
+
 /** Alta de una sucursal. Al crearla se pasa a su edición (certificado). */
 export function PaginaNuevaSucursal() {
   const navegar = useNavigate()
@@ -38,7 +42,9 @@ export function PaginaNuevaSucursal() {
   const crear = useCrearSucursal()
   const puedeCrear = useTienePermiso(RECURSO_CONFIGURACION, "crear")
   const [cambiosSucursal, setCambiosSucursal] = useState(false)
-  const salida = useAvisoCambiosSinGuardar({ sucursal: cambiosSucursal })
+  const salida = useAvisoCambiosSinGuardar({
+    sucursal: { pendiente: cambiosSucursal, descripcion: DATOS_SUCURSAL },
+  })
 
   // La edición conserva el retorno al listado.
   const guardar = (valores: SucursalFormulario) =>
@@ -114,8 +120,11 @@ function EdicionSucursal({
   const [cambiosSucursal, setCambiosSucursal] = useState(false)
   const [cambiosCertificado, setCambiosCertificado] = useState(false)
   const salida = useAvisoCambiosSinGuardar({
-    sucursal: cambiosSucursal,
-    certificado: cambiosCertificado,
+    sucursal: { pendiente: cambiosSucursal, descripcion: DATOS_SUCURSAL },
+    certificado: {
+      pendiente: cambiosCertificado,
+      descripcion: DATOS_CERTIFICADO,
+    },
   })
 
   if (sucursal.isPending) {
