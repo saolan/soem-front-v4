@@ -9,6 +9,8 @@ const PREFIJO_AUTH = "/auth/"
 // vencido); renovar ahí provocaría un bucle.
 const RUTAS_SIN_RENOVACION = ["/auth/login", "/auth/refresh", "/auth/logout"]
 const NOMBRE_LOCK_REFRESH = "soem-refresh"
+const MENSAJE_RENOVACION_FALLIDA =
+  "No se pudo conectar con el servidor para renovar la sesión. Intente nuevamente."
 
 type Metodo = "GET" | "POST" | "PUT" | "DELETE"
 type ValorParametro = string | number | boolean | null | undefined
@@ -26,8 +28,19 @@ export interface RespuestaHttp<T> {
   paginacion: Paginacion | null
 }
 
+/**
+ * Resultado de renovar el access token:
+ * - `renovada`: hay un access token nuevo.
+ * - `rechazada`: el servidor respondió 401 (refresh vencido, revocado o sin
+ *   cookie); la sesión terminó de verdad.
+ * - `fallida`: no se pudo consultar (red caída, servidor reiniciándose,
+ *   5xx); la sesión puede seguir vigente y se reintenta en la siguiente
+ *   petición.
+ */
+export type ResultadoRenovacion = "renovada" | "rechazada" | "fallida"
+
 interface ManejadoresSesion {
-  /** Pide un access token nuevo; devuelve `true` si la sesión se renovó. */
+  /** Pide un access token nuevo; falla con `ErrorApi` si no lo consigue. */
   renovar: () => Promise<boolean>
   /** La sesión no se pudo renovar: limpiar estado y volver al login. */
   alExpirar: () => void
@@ -36,7 +49,7 @@ interface ManejadoresSesion {
 // El access token vive solo en memoria (nunca en storage ni en la URL).
 let accessToken: string | null = null
 let manejadores: ManejadoresSesion | null = null
-let renovacionEnCurso: Promise<boolean> | null = null
+let renovacionEnCurso: Promise<ResultadoRenovacion> | null = null
 
 export function establecerToken(token: string | null) {
   accessToken = token
@@ -67,13 +80,25 @@ function conLockDeRefresh<T>(accion: () => Promise<T>): Promise<T> {
  * Renovación single-flight: el refresh token rota en cada uso, así que todas
  * las llamadas concurrentes comparten la misma promesa.
  */
-export function renovarSesion(): Promise<boolean> {
+export function renovarSesion(): Promise<ResultadoRenovacion> {
   const actuales = manejadores
   if (!actuales) {
-    return Promise.resolve(false)
+    return Promise.resolve("rechazada")
   }
   renovacionEnCurso ??= conLockDeRefresh(() => actuales.renovar())
-    .catch(() => false)
+    .then((renovada): ResultadoRenovacion =>
+      renovada ? "renovada" : "rechazada"
+    )
+    .catch((error: unknown): ResultadoRenovacion => {
+      // Solo un 401 del refresh termina la sesión; cualquier otro fallo es
+      // transitorio y no debe sacar al usuario del sistema.
+      const estado = error instanceof ErrorApi ? error.estado : 0
+      if (import.meta.env.DEV) {
+        // Solo el código HTTP: nunca el cuerpo ni la cookie.
+        console.warn(`No se pudo renovar la sesión (HTTP ${estado})`)
+      }
+      return estado === 401 ? "rechazada" : "fallida"
+    })
     .finally(() => {
       renovacionEnCurso = null
     })
@@ -157,8 +182,12 @@ async function ejecutar<T extends z.ZodType>(
       !esReintento &&
       !RUTAS_SIN_RENOVACION.includes(ruta)
     ) {
-      if (await renovarSesion()) {
+      const renovacion = await renovarSesion()
+      if (renovacion === "renovada") {
         return ejecutar(ruta, opciones, true)
+      }
+      if (renovacion === "fallida") {
+        throw new ErrorApi(0, MENSAJE_RENOVACION_FALLIDA)
       }
       manejadores?.alExpirar()
     }
