@@ -274,4 +274,32 @@ describe("clienteHttp", () => {
       clienteHttp("/a", { esquema: esquemaPrueba })
     ).rejects.toMatchObject({ estado: 0 })
   })
+
+  it.each([502, 503, 504])(
+    "un %i del proxy sin cuerpo indica que el servidor no está disponible",
+    async (estado) => {
+      fetchSimulado.mockResolvedValue(new Response("", { status: estado }))
+
+      await expect(
+        clienteHttp("/auth/login", { metodo: "POST", esquema: esquemaPrueba })
+      ).rejects.toMatchObject({
+        estado,
+        message:
+          "El servidor no está disponible en este momento. Intente nuevamente en unos minutos.",
+      })
+    }
+  )
+
+  it("un 503 con RespuestaApi conserva el mensaje del back-end", async () => {
+    fetchSimulado.mockResolvedValue(
+      respuestaJson(
+        { exito: false, mensaje: "Servicio de firma no disponible" },
+        503
+      )
+    )
+
+    await expect(
+      clienteHttp("/a", { esquema: esquemaPrueba })
+    ).rejects.toMatchObject({ message: "Servicio de firma no disponible" })
+  })
 })
