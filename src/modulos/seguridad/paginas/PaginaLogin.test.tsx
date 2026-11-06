@@ -41,6 +41,7 @@ function renderizar() {
   const sesion: ValorSesion = {
     estado: "anonimo",
     sesion: null,
+    sucursalNoDisponible: false,
     iniciarSesion: vi.fn(),
     cerrarSesion: vi.fn(),
   }

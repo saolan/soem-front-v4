@@ -36,6 +36,8 @@ interface PropsCampoSeleccion<T extends FieldValues> {
    * solo traen registros activos).
    */
   etiquetaNoDisponible?: string
+  /** Clases adicionales del botón del desplegable (ej. tamaño). */
+  className?: string
 }
 
 type Item = { value: number; label: string }
@@ -51,6 +53,7 @@ export function CampoSeleccion<T extends FieldValues>({
   obligatorio = false,
   cargando = false,
   etiquetaNoDisponible = "Opción no disponible (inactiva)",
+  className,
 }: PropsCampoSeleccion<T>) {
   const idCampo = useId()
   const idError = `${idCampo}-error`
@@ -89,7 +92,7 @@ export function CampoSeleccion<T extends FieldValues>({
               // el botón visible, no el input oculto del Select.
               ref={field.ref}
               id={idCampo}
-              className={cn("w-full", MARGEN_DESPLAZAMIENTO_CAMPO)}
+              className={cn("w-full", MARGEN_DESPLAZAMIENTO_CAMPO, className)}
               onBlur={field.onBlur}
               aria-invalid={fieldState.invalid}
               aria-required={obligatorio || undefined}

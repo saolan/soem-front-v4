@@ -149,4 +149,8 @@
   html {
     @apply font-sans;
     }
+  /* Edge añade su propio botón para ver la clave; CampoClave ya tiene uno. */
+  input::-ms-reveal {
+    display: none;
+    }
 }

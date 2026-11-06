@@ -6,7 +6,7 @@ import { toast } from "sonner"
 
 import { aplicarErroresFormulario } from "@/compartido/api/aplicarErroresFormulario"
 import { AvisoError } from "@/compartido/componentes/AvisoError"
-import { CampoFormulario } from "@/compartido/componentes/CampoFormulario"
+import { CampoClave } from "@/compartido/componentes/CampoClave"
 import { Button } from "@/compartido/componentes/ui/button"
 import { FieldGroup } from "@/compartido/componentes/ui/field"
 import { RUTA_INICIO } from "@/compartido/sesion/GuardasRuta"
@@ -15,6 +15,10 @@ import {
   useCambiarClave,
   useLogout,
 } from "@/modulos/seguridad/api/autenticacion"
+import {
+  CAMPO_AUTENTICACION,
+  BOTON_AUTENTICACION,
+} from "@/modulos/seguridad/componentes/clasesAutenticacion"
 import { PantallaAutenticacion } from "@/modulos/seguridad/componentes/PantallaAutenticacion"
 import {
   esquemaCambioClave,
@@ -64,32 +68,32 @@ export function PaginaCambioClave() {
       <form onSubmit={enviar} noValidate>
         <FieldGroup>
           <AvisoError mensaje={aviso} />
-          <CampoFormulario
+          <CampoClave
             control={formulario.control}
             name="claveActual"
             etiqueta="Clave actual"
-            type="password"
             autoComplete="current-password"
             autoFocus
+            className={CAMPO_AUTENTICACION}
           />
-          <CampoFormulario
+          <CampoClave
             control={formulario.control}
             name="claveNueva"
             etiqueta="Clave nueva"
-            type="password"
             autoComplete="new-password"
+            className={CAMPO_AUTENTICACION}
           />
-          <CampoFormulario
+          <CampoClave
             control={formulario.control}
             name="confirmacionClave"
             etiqueta="Confirmar clave nueva"
-            type="password"
             autoComplete="new-password"
+            className={CAMPO_AUTENTICACION}
           />
           <div className="flex flex-col gap-2">
             <Button
               type="submit"
-              className="w-full"
+              className={BOTON_AUTENTICACION}
               disabled={cambiarClave.isPending}
             >
               {cambiarClave.isPending ? "Guardando…" : "Cambiar clave"}
@@ -98,7 +102,7 @@ export function PaginaCambioClave() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className={BOTON_AUTENTICACION}
                 disabled={logout.isPending}
                 onClick={() => logout.mutate()}
               >
@@ -108,7 +112,7 @@ export function PaginaCambioClave() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                className={BOTON_AUTENTICACION}
                 onClick={() => void navegar(-1)}
               >
                 Cancelar

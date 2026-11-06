@@ -1,5 +1,6 @@
 import { Outlet } from "react-router"
 
+import { LogoSoem } from "@/compartido/componentes/LogoSoem"
 import { MenuLateral } from "@/modulos/seguridad/componentes/MenuLateral"
 import { MenuMovil } from "@/modulos/seguridad/componentes/MenuMovil"
 import { MenuUsuario } from "@/modulos/seguridad/componentes/MenuUsuario"
@@ -11,9 +12,7 @@ export function LayoutPrincipal() {
       <header className="flex items-center justify-between gap-2 border-b px-4 py-2 sm:px-6">
         <div className="flex items-center gap-2">
           <MenuMovil />
-          <span className="font-heading text-lg font-semibold text-primary">
-            SOEM
-          </span>
+          <LogoSoem variante="horizontal" />
         </div>
         <div className="flex min-w-0 items-center gap-2">
           <SelectorSucursal />

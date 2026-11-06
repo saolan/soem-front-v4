@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/compartido/componentes/ui/dropdown-menu"
 import { RUTA_CAMBIO_CLAVE } from "@/compartido/sesion/GuardasRuta"
+import { nombreVisible } from "@/compartido/sesion/nombreUsuario"
 import { useSesion } from "@/compartido/sesion/useSesion"
 import { useLogout } from "@/modulos/seguridad/api/autenticacion"
 
@@ -24,22 +25,22 @@ export function MenuUsuario() {
     return null
   }
 
-  const { usuari, nombre, apelli } = sesion.usuario
-  const nombreCompleto = [nombre, apelli].filter(Boolean).join(" ")
+  // Apellido y nombre: el usuario de acceso no queda a la vista.
+  const nombre = nombreVisible(sesion.usuario)
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={
-          <Button variant="ghost" aria-label={`Menú de usuario ${usuari}`} />
+          <Button variant="ghost" aria-label={`Menú de usuario ${nombre}`} />
         }
       >
         <UserIcon aria-hidden="true" />
-        <span className="hidden truncate sm:inline">{usuari}</span>
+        <span className="hidden max-w-48 truncate sm:inline">{nombre}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-auto min-w-56">
         <DropdownMenuGroup>
-          <DropdownMenuLabel>{nombreCompleto || usuari}</DropdownMenuLabel>
+          <DropdownMenuLabel>{nombre}</DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => void navegar(RUTA_CAMBIO_CLAVE)}>

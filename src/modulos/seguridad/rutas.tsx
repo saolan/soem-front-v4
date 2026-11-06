@@ -1,6 +1,10 @@
 import type { RouteObject } from "react-router"
 
-import { RUTA_CAMBIO_CLAVE, RUTA_LOGIN } from "@/compartido/sesion/GuardasRuta"
+import {
+  RUTA_CAMBIO_CLAVE,
+  RUTA_LOGIN,
+  RUTA_SELECCION_SUCURSAL,
+} from "@/compartido/sesion/GuardasRuta"
 import { rutasPendientes } from "@/compartido/utilidades/rutasMenu"
 
 /** Rutas para usuarios sin sesión. */
@@ -14,8 +18,19 @@ export const rutasPublicasSeguridad: RouteObject[] = [
   },
 ]
 
-/** Rutas con sesión que se muestran fuera del layout principal. */
+/**
+ * Rutas con sesión que se muestran fuera del layout principal (sin menú):
+ * cambio de clave y selección de sucursal.
+ */
 export const rutasSesionSeguridad: RouteObject[] = [
+  {
+    path: RUTA_SELECCION_SUCURSAL,
+    lazy: async () => ({
+      Component: (
+        await import("@/modulos/seguridad/paginas/PaginaSeleccionSucursal")
+      ).PaginaSeleccionSucursal,
+    }),
+  },
   {
     path: RUTA_CAMBIO_CLAVE,
     lazy: async () => ({

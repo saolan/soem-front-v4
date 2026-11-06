@@ -4,10 +4,15 @@ import { useForm } from "react-hook-form"
 
 import { aplicarErroresFormulario } from "@/compartido/api/aplicarErroresFormulario"
 import { AvisoError } from "@/compartido/componentes/AvisoError"
+import { CampoClave } from "@/compartido/componentes/CampoClave"
 import { CampoFormulario } from "@/compartido/componentes/CampoFormulario"
 import { Button } from "@/compartido/componentes/ui/button"
 import { FieldGroup } from "@/compartido/componentes/ui/field"
 import { useLogin } from "@/modulos/seguridad/api/autenticacion"
+import {
+  CAMPO_AUTENTICACION,
+  BOTON_AUTENTICACION,
+} from "@/modulos/seguridad/componentes/clasesAutenticacion"
 import { PantallaAutenticacion } from "@/modulos/seguridad/componentes/PantallaAutenticacion"
 import {
   esquemaLoginRequest,
@@ -40,10 +45,7 @@ export function PaginaLogin() {
   })
 
   return (
-    <PantallaAutenticacion
-      titulo="Iniciar sesión"
-      descripcion="Ingrese sus credenciales para acceder a SOEM."
-    >
+    <PantallaAutenticacion titulo="Iniciar sesión">
       <form onSubmit={enviar} noValidate>
         <FieldGroup>
           <AvisoError mensaje={aviso} />
@@ -53,15 +55,20 @@ export function PaginaLogin() {
             etiqueta="Usuario"
             autoComplete="username"
             autoFocus
+            className={CAMPO_AUTENTICACION}
           />
-          <CampoFormulario
+          <CampoClave
             control={formulario.control}
             name="clave"
             etiqueta="Clave"
-            type="password"
             autoComplete="current-password"
+            className={CAMPO_AUTENTICACION}
           />
-          <Button type="submit" className="w-full" disabled={login.isPending}>
+          <Button
+            type="submit"
+            className={BOTON_AUTENTICACION}
+            disabled={login.isPending}
+          >
             {login.isPending ? "Ingresando…" : "Ingresar"}
           </Button>
         </FieldGroup>
