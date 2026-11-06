@@ -1,6 +1,7 @@
 import { MenuIcon, XIcon } from "lucide-react"
 import { useState } from "react"
 
+import { LogoSoem } from "@/compartido/componentes/LogoSoem"
 import { Button } from "@/compartido/componentes/ui/button"
 import {
   Sheet,
@@ -36,7 +37,9 @@ export function MenuMovil() {
       </SheetTrigger>
       <SheetContent side="left" showCloseButton={false} className="w-72 gap-0">
         <SheetHeader className="flex-row items-center justify-between border-b">
-          <SheetTitle className="text-primary">SOEM</SheetTitle>
+          <SheetTitle>
+            <LogoSoem variante="horizontal" />
+          </SheetTitle>
           <SheetClose
             render={
               <Button

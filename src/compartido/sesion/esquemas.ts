@@ -25,14 +25,18 @@ export const esquemaUsuarioDTO = z.object({
 export const esquemaLoginRespuestaDTO = z.object({
   accessToken: z.string(),
   expiraEnSegundos: z.number(),
-  sucursalId: z.number().int(),
+  // null mientras el usuario con varias sucursales no elige una.
+  sucursalId: z.number().int().nullish(),
   sucursales: z.array(esquemaComboDTO),
   usuario: esquemaUsuarioDTO,
   permisos: z.array(z.string()),
   claveCaducada: z.boolean(),
-  // Pendiente en el back-end: minutos sin uso tras los que el front cierra la
-  // sesión. Mientras no llegue se usa INACTIVIDAD_POR_DEFECTO_SEGUNDOS.
+  // Segundos sin uso tras los que el front cierra la sesión; si no llega se
+  // usa INACTIVIDAD_POR_DEFECTO_SEGUNDOS.
   inactividadSegundos: z.number().int().positive().nullish(),
+  // Varias sucursales sin elegir: la sesión no tiene sucursal ni permisos
+  // hasta llamar a /auth/cambiar-sucursal.
+  requiereSeleccionSucursal: z.boolean().nullish(),
 })
 
 export type UsuarioDTO = z.infer<typeof esquemaUsuarioDTO>

@@ -212,16 +212,19 @@ src/
 ## SEGURIDAD
 
 - Autenticación con MicroProfile JWT del back-end:
-  - `POST /auth/login` `{ usuario, clave, sucursalId? }` → `LoginRespuestaDTO`
-    (`accessToken`, `expiraEnSegundos`, `sucursalId`, `sucursales`
-    (`ComboDTO[]` accesibles), `usuario`, `permisos`, `claveCaducada`,
-    `inactividadSegundos`) + cookie `refreshToken`. El login del front no pide sucursal: el back-end
-    asigna una por defecto y se cambia desde la cabecera.
+  - `POST /auth/login` `{ usuario, clave }` → `LoginRespuestaDTO`
+    (`accessToken`, `expiraEnSegundos`, `sucursalId` (null sin elegir),
+    `sucursales` (`ComboDTO[]` accesibles), `usuario`, `permisos`,
+    `claveCaducada`, `inactividadSegundos`, `requiereSeleccionSucursal`) +
+    cookie `refreshToken`. El login no pide sucursal: con una sola entra
+    directo; con varias llega `requiereSeleccionSucursal: true` (sin sucursal
+    ni permisos) y el usuario la elige en `/seleccionar-sucursal`.
   - `POST /auth/refresh` → mismo `LoginRespuestaDTO` + rotación de la cookie;
     al recargar repone toda la sesión (no hace falta `/auth/me`).
   - `POST /auth/cambiar-sucursal` `{ sucursalId }` → requiere access token y
     cookie, rota el refresh y devuelve `LoginRespuestaDTO`; `400` si la clave
-    está caducada.
+    está caducada o si no tiene acceso a la sucursal (`errores` en
+    `sucursalId`).
   - `POST /auth/logout` → revoca el refresh token y borra la cookie.
   - `GET /auth/me` → sesión actual; `POST /auth/cambiar-clave`
     `{ claveActual, claveNueva }` → `LoginRespuestaDTO`, o `datos: null` si no
@@ -273,6 +276,15 @@ src/
   para recuperar la sesión, ya que el access token en memoria se pierde.
 - Si `claveCaducada` es `true`, se fuerza la pantalla de cambio de clave antes
   de permitir cualquier otra navegación.
+- Selección de sucursal (`RutaProtegida` + `PaginaSeleccionSucursal`): con
+  `requiereSeleccionSucursal: true` (login, refresh al recargar o tras perder
+  el acceso a la sucursal activa, cambio de clave) solo se permite
+  `/seleccionar-sucursal`, sin menú, después del cambio de clave si también
+  está caducada. Al confirmar se llama a `/auth/cambiar-sucursal` y se vuelve
+  a la ruta de retorno. Si una renovación quita la sucursal en la que
+  trabajaba se avisa en el selector (`sucursalNoDisponible`). Se recuerda solo
+  el id de la última sucursal (`localStorage`) para preseleccionarla; el
+  usuario siempre confirma.
 - Permisos:
   - Vienen en el login y en `/auth/me` como `"recurso:accion"` en minúsculas
     (ej. `usuarios:buscar`, `sucursales:modificar`). Acciones posibles:
