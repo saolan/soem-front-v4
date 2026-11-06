@@ -176,6 +176,63 @@ describe("PaginaSucursal", () => {
     expect(fetchSimulado).not.toHaveBeenCalled()
   })
 
+  describe("foco en el error al guardar", () => {
+    it("errores del front: enfoca el primer campo inválido", async () => {
+      const usuario = userEvent.setup()
+      renderizar("/configuracion/sucursales/nueva")
+
+      await usuario.type(await screen.findByLabelText("Código"), "001")
+      await usuario.click(
+        screen.getByRole("button", { name: "Crear sucursal" })
+      )
+
+      await screen.findByText("La descripción es obligatoria")
+      expect(document.activeElement).toBe(screen.getByLabelText("Descripción"))
+    })
+
+    it("errores del back-end: enfoca el primer campo devuelto", async () => {
+      fetchSimulado.mockResolvedValue(
+        respuestaApi(null, 409, {
+          mensaje: "La sucursal entra en conflicto con datos existentes",
+          errores: [
+            { campo: "ruc", detalle: "Ya existe una sucursal con este RUC" },
+            {
+              campo: "codigo",
+              detalle: "Ya existe una sucursal con este código",
+            },
+          ],
+        })
+      )
+      const usuario = userEvent.setup()
+      renderizar("/configuracion/sucursales/nueva")
+
+      await llenarObligatorios(usuario)
+      await usuario.click(
+        screen.getByRole("button", { name: "Crear sucursal" })
+      )
+
+      await screen.findByText("Ya existe una sucursal con este RUC")
+      expect(document.activeElement).toBe(screen.getByLabelText("RUC"))
+    })
+
+    it("error general sin campo: enfoca el aviso", async () => {
+      fetchSimulado.mockResolvedValue(
+        respuestaApi(null, 500, { mensaje: "Ocurrió un error inesperado" })
+      )
+      const usuario = userEvent.setup()
+      renderizar("/configuracion/sucursales/nueva")
+
+      await llenarObligatorios(usuario)
+      await usuario.click(
+        screen.getByRole("button", { name: "Crear sucursal" })
+      )
+
+      const aviso = await screen.findByRole("alert")
+      expect(aviso.textContent).toContain("Ocurrió un error inesperado")
+      expect(document.activeElement).toBe(aviso)
+    })
+  })
+
   it("al crear pasa a la edición de la sucursal", async () => {
     fetchSimulado.mockImplementation(async (url, init) => {
       const ruta = String(url)

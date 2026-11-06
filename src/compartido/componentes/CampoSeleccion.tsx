@@ -7,6 +7,7 @@ import {
 } from "react-hook-form"
 
 import type { ComboDTO } from "@/compartido/api/esquemas"
+import { MARGEN_DESPLAZAMIENTO_CAMPO } from "@/compartido/componentes/clasesCampo"
 import { EtiquetaCampo } from "@/compartido/componentes/EtiquetaCampo"
 import { Field, FieldError } from "@/compartido/componentes/ui/field"
 import {
@@ -16,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/compartido/componentes/ui/select"
+import { cn } from "@/compartido/utilidades/cn"
 
 interface PropsCampoSeleccion<T extends FieldValues> {
   control: Control<T>
@@ -80,12 +82,14 @@ export function CampoSeleccion<T extends FieldValues>({
             value={field.value ?? null}
             onValueChange={field.onChange}
             disabled={disabled}
-            inputRef={field.ref}
             name={field.name}
           >
             <SelectTrigger
+              // RHF enfoca el campo por este ref (primer error al guardar):
+              // el botón visible, no el input oculto del Select.
+              ref={field.ref}
               id={idCampo}
-              className="w-full"
+              className={cn("w-full", MARGEN_DESPLAZAMIENTO_CAMPO)}
               onBlur={field.onBlur}
               aria-invalid={fieldState.invalid}
               aria-required={obligatorio || undefined}
