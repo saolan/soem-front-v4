@@ -24,6 +24,7 @@ const sesion: ValorSesion = {
     permisos: [],
     claveCaducada: false,
   },
+  sucursalNoDisponible: false,
   iniciarSesion: vi.fn(),
   cerrarSesion: vi.fn(),
 }

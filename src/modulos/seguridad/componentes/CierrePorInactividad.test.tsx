@@ -45,6 +45,7 @@ describe("CierrePorInactividad", () => {
         // Valor enviado por el back-end: 10 minutos.
         inactividadSegundos: 600,
       },
+      sucursalNoDisponible: false,
       iniciarSesion: vi.fn(),
       cerrarSesion,
     }

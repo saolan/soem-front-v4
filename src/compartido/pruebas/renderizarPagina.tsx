@@ -53,6 +53,7 @@ export function renderizarPagina({
       permisos,
       claveCaducada: false,
     },
+    sucursalNoDisponible: false,
     iniciarSesion: vi.fn(),
     cerrarSesion: vi.fn(),
   }

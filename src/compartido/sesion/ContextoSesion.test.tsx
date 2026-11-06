@@ -134,4 +134,43 @@ describe("SesionProvider entre pestañas", () => {
     await vi.waitFor(() => expect(actual()?.estado).toBe("autenticado"))
     expect(actual()?.sesion?.usuario.usuari).toBe("cc")
   })
+
+  describe("sucursal de la sesión", () => {
+    afterEach(() => {
+      localStorage.clear()
+    })
+
+    const sinSucursal = (usuari: string): LoginRespuestaDTO => ({
+      ...sesionDe(usuari),
+      sucursalId: null,
+      sucursales: [
+        { valor: 1, etiqueta: "Matriz" },
+        { valor: 2, etiqueta: "Norte" },
+      ],
+      requiereSeleccionSucursal: true,
+    })
+
+    it("recuerda la última sucursal elegida (solo su id)", () => {
+      act(() => actual()?.iniciarSesion(sesionDe("aa")))
+
+      expect(localStorage.getItem("soem.ultima-sucursal")).toBe("1")
+    })
+
+    it("si una renovación quita la sucursal en la que trabajaba, lo avisa", async () => {
+      act(() => actual()?.iniciarSesion(sesionDe("aa")))
+      fetchSimulado.mockImplementation(async () => respuesta(sinSucursal("aa")))
+
+      await act(() => renovarSesion())
+
+      expect(actual()?.sesion?.requiereSeleccionSucursal).toBe(true)
+      expect(actual()?.sucursalNoDisponible).toBe(true)
+    })
+
+    it("al iniciar sesión sin sucursal elegida no es un aviso de pérdida", () => {
+      act(() => actual()?.iniciarSesion(sinSucursal("aa")))
+
+      expect(actual()?.sesion?.requiereSeleccionSucursal).toBe(true)
+      expect(actual()?.sucursalNoDisponible).toBe(false)
+    })
+  })
 })

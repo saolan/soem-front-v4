@@ -23,6 +23,7 @@ import {
   esquemaLoginRespuestaDTO,
   type LoginRespuestaDTO,
 } from "@/compartido/sesion/esquemas"
+import { guardarUltimaSucursal } from "@/compartido/sesion/ultimaSucursal"
 
 export type EstadoSesion = "cargando" | "autenticado" | "anonimo"
 
@@ -32,6 +33,11 @@ export type DatosSesion = Omit<LoginRespuestaDTO, "accessToken">
 export interface ValorSesion {
   estado: EstadoSesion
   sesion: DatosSesion | null
+  /**
+   * Una renovación dejó la sesión sin la sucursal en la que trabajaba (p. ej.
+   * le quitaron el acceso): el selector debe avisarlo.
+   */
+  sucursalNoDisponible: boolean
   iniciarSesion: (respuesta: LoginRespuestaDTO) => void
   cerrarSesion: () => void
 }
@@ -51,12 +57,27 @@ export function SesionProvider({ children }: { children: React.ReactNode }) {
   const [sesion, setSesion] = useState<DatosSesion | null>(null)
   const canal = useRef<CanalSesion | null>(null)
   const usuarioActual = useRef<string | null>(null)
+  const sucursalActual = useRef<number | null>(null)
+  const [sucursalNoDisponible, setSucursalNoDisponible] = useState(false)
 
   // Versiones locales: solo cambian el estado de esta pestaña.
   const aplicarSesion = useCallback((respuesta: LoginRespuestaDTO) => {
     const { accessToken, ...datos } = respuesta
     establecerToken(accessToken)
+    const mismoUsuario = usuarioActual.current === datos.usuario.usuari
+    if (datos.sucursalId != null) {
+      guardarUltimaSucursal(datos.sucursalId)
+      setSucursalNoDisponible(false)
+    } else if (
+      datos.requiereSeleccionSucursal &&
+      mismoUsuario &&
+      sucursalActual.current !== null
+    ) {
+      // Trabajaba en una sucursal y la renovación ya no la trae.
+      setSucursalNoDisponible(true)
+    }
     usuarioActual.current = datos.usuario.usuari
+    sucursalActual.current = datos.sucursalId ?? null
     setSesion(datos)
     setEstado("autenticado")
   }, [])
@@ -64,6 +85,8 @@ export function SesionProvider({ children }: { children: React.ReactNode }) {
   const cerrarLocal = useCallback(() => {
     establecerToken(null)
     usuarioActual.current = null
+    sucursalActual.current = null
+    setSucursalNoDisponible(false)
     setSesion(null)
     setEstado("anonimo")
     queryClient.clear()
@@ -141,8 +164,14 @@ export function SesionProvider({ children }: { children: React.ReactNode }) {
   }, [aplicarSesion, cerrarLocal, cerrarSesion, queryClient])
 
   const valor = useMemo(
-    () => ({ estado, sesion, iniciarSesion, cerrarSesion }),
-    [estado, sesion, iniciarSesion, cerrarSesion]
+    () => ({
+      estado,
+      sesion,
+      sucursalNoDisponible,
+      iniciarSesion,
+      cerrarSesion,
+    }),
+    [estado, sesion, sucursalNoDisponible, iniciarSesion, cerrarSesion]
   )
 
   return <ContextoSesion value={valor}>{children}</ContextoSesion>

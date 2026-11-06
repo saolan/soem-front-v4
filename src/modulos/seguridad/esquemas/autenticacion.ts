@@ -3,7 +3,8 @@ import { z } from "zod"
 const noVacio = (valor: string) => valor.trim().length > 0
 
 // Espejo de LoginRequestDTO (../soem/.../seguridad/dto/LoginRequestDTO.java).
-// `sucursalId` no se envía: el back-end resuelve la sucursal por defecto.
+// La sucursal no se elige en el login: con varias, la respuesta trae
+// requiereSeleccionSucursal y se elige luego con /auth/cambiar-sucursal.
 export const esquemaLoginRequest = z.object({
   usuario: z
     .string()
@@ -31,5 +32,18 @@ export const esquemaCambioClave = z
     message: "La confirmación no coincide con la clave nueva",
   })
 
+// Cuerpo de POST /auth/cambiar-sucursal ({ sucursalId }). null: aún sin
+// elegir en el selector.
+export const esquemaSeleccionSucursal = z.object({
+  sucursalId: z
+    .number({ error: "Seleccione una sucursal" })
+    .int()
+    .nullable()
+    .refine((valor) => valor !== null, "Seleccione una sucursal"),
+})
+
 export type LoginRequest = z.infer<typeof esquemaLoginRequest>
+export type SeleccionSucursalFormulario = z.input<
+  typeof esquemaSeleccionSucursal
+>
 export type CambioClave = z.infer<typeof esquemaCambioClave>

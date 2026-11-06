@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { aplicarErroresFormulario } from "@/compartido/api/aplicarErroresFormulario"
 import { esReintentable, mensajeDeError } from "@/compartido/api/errores"
 import { AvisoError } from "@/compartido/componentes/AvisoError"
+import { CampoClave } from "@/compartido/componentes/CampoClave"
 import { CampoFormulario } from "@/compartido/componentes/CampoFormulario"
 import { CampoSeleccion } from "@/compartido/componentes/CampoSeleccion"
 import { DialogoConfirmacion } from "@/compartido/componentes/DialogoConfirmacion"
@@ -147,13 +148,12 @@ function Formulario({
             etiqueta="Ruta del archivo del certificado"
             obligatorio={puedeModificar}
           />
-          <CampoFormulario
+          <CampoClave
             control={control}
             name="clave"
             maxLength={LONGITUDES_CERTIFICADO.clave}
             etiqueta="Clave del certificado"
             obligatorio={puedeModificar && !existe}
-            type="password"
             autoComplete="new-password"
             descripcion={
               existe
