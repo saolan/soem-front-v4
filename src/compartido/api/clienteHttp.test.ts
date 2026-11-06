@@ -116,7 +116,7 @@ describe("clienteHttp", () => {
     desregistrar = registrarManejadoresSesion({ renovar, alExpirar: vi.fn() })
 
     try {
-      expect(await renovarSesion()).toBe(true)
+      expect(await renovarSesion()).toBe("renovada")
       expect(request).toHaveBeenCalledTimes(1)
       expect(request.mock.calls[0]?.[0]).toBe("soem-refresh")
       expect(renovar).toHaveBeenCalledTimes(1)
@@ -125,10 +125,11 @@ describe("clienteHttp", () => {
     }
   })
 
-  it("con 401 sin cuerpo y refresh fallido expira la sesión", async () => {
+  it("con 401 sin cuerpo y refresh rechazado (401) expira la sesión", async () => {
     const alExpirar = vi.fn()
     desregistrar = registrarManejadoresSesion({
-      renovar: () => Promise.reject(new Error("refresh vencido")),
+      renovar: () =>
+        Promise.reject(new ErrorApi(401, "Sesión inválida o expirada")),
       alExpirar,
     })
     fetchSimulado.mockResolvedValue(new Response("", { status: 401 }))
@@ -141,6 +142,57 @@ describe("clienteHttp", () => {
     expect((error as ErrorApi).estado).toBe(401)
     expect((error as ErrorApi).message).toBe("Debe iniciar sesión nuevamente")
     expect(alExpirar).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ["sin conexión", 0],
+    ["error del servidor", 503],
+  ])(
+    "si el refresh falla por %s conserva la sesión y no expira",
+    async (_caso, estado) => {
+      const alExpirar = vi.fn()
+      desregistrar = registrarManejadoresSesion({
+        renovar: () => Promise.reject(new ErrorApi(estado, "fallo")),
+        alExpirar,
+      })
+      fetchSimulado.mockResolvedValue(new Response("", { status: 401 }))
+
+      const error = await clienteHttp("/a", { esquema: esquemaPrueba }).catch(
+        (e: unknown) => e
+      )
+
+      expect(error).toBeInstanceOf(ErrorApi)
+      // Estado 0: TanStack Query lo reintenta (esReintentable).
+      expect((error as ErrorApi).estado).toBe(0)
+      expect((error as ErrorApi).message).toBe(
+        "No se pudo conectar con el servidor para renovar la sesión. Intente nuevamente."
+      )
+      expect(alExpirar).not.toHaveBeenCalled()
+    }
+  )
+
+  it("tras un refresh fallido, la siguiente petición vuelve a renovar", async () => {
+    const renovar = vi
+      .fn<() => Promise<boolean>>()
+      .mockRejectedValueOnce(new ErrorApi(0, "sin conexión"))
+      .mockImplementationOnce(async () => {
+        establecerToken("nuevo")
+        return true
+      })
+    desregistrar = registrarManejadoresSesion({ renovar, alExpirar: vi.fn() })
+    fetchSimulado.mockImplementation(async (_url, init) =>
+      encabezado(init, "Authorization") === "Bearer nuevo"
+        ? exito({ id: 1 })
+        : new Response("", { status: 401 })
+    )
+
+    await expect(
+      clienteHttp("/a", { esquema: esquemaPrueba })
+    ).rejects.toBeInstanceOf(ErrorApi)
+    const { datos } = await clienteHttp("/a", { esquema: esquemaPrueba })
+
+    expect(datos.id).toBe(1)
+    expect(renovar).toHaveBeenCalledTimes(2)
   })
 
   it("no intenta refresh ante 401 de /auth/login y conserva el mensaje", async () => {

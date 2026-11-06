@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { useBlocker } from "react-router"
+
+import { usePublicarCambiosPendientes } from "@/compartido/hooks/cambiosPendientes"
 
 /** Formulario de la página que puede tener cambios sin guardar. */
 export interface OrigenCambios {
@@ -33,7 +35,10 @@ export function useAvisoCambiosSinGuardar(
     Object.entries(cambios)
       .filter(([origen, { pendiente }]) => pendiente && !omitir.has(origen))
       .map(([, { descripcion }]) => descripcion)
-  const hayCambios = describirPendientes(new Set()).length > 0
+  const descripcionesActuales = describirPendientes(new Set())
+  const hayCambios = descripcionesActuales.length > 0
+  // Visible para avisos globales (ej. cierre de sesión por inactividad).
+  usePublicarCambiosPendientes(useId(), descripcionesActuales)
 
   const bloqueador = useBlocker(({ currentLocation, nextLocation }) => {
     if (currentLocation.pathname === nextLocation.pathname) {

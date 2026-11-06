@@ -1,14 +1,13 @@
 import { DialogoConfirmacion } from "@/compartido/componentes/DialogoConfirmacion"
 import type { AvisoCambiosSinGuardar } from "@/compartido/hooks/useAvisoCambiosSinGuardar"
-
-const listaConjuncion = new Intl.ListFormat("es", { type: "conjunction" })
+import { unirConY } from "@/compartido/utilidades/texto"
 
 /** Texto del aviso, indicando qué cambios se perderían. */
 function descripcionCambiosSinGuardar(pendientes: string[]) {
   if (pendientes.length === 0) {
     return "Los cambios sin guardar se perderán. ¿Desea salir sin guardar?"
   }
-  return `Hay cambios sin guardar en ${listaConjuncion.format(pendientes)}. Si sale ahora, se perderán. ¿Desea salir sin guardar?`
+  return `Hay cambios sin guardar en ${unirConY(pendientes)}. Si sale ahora, se perderán. ¿Desea salir sin guardar?`
 }
 
 /** Confirmación al salir de una pantalla con cambios sin guardar. */
