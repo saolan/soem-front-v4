@@ -116,7 +116,7 @@ function Formulario({
 
   return (
     <form onSubmit={enviar} noValidate className="flex flex-col gap-6">
-      <AvisoError mensaje={aviso} />
+      <AvisoError mensaje={aviso} enfocar />
       <AvisoError
         mensaje={emisores.isError ? mensajeDeError(emisores.error) : null}
       />

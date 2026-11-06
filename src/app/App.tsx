@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/compartido/componentes/theme-provider"
 import { Toaster } from "@/compartido/componentes/ui/sonner"
 import { TooltipProvider } from "@/compartido/componentes/ui/tooltip"
 import { SesionProvider } from "@/compartido/sesion/ContextoSesion"
+import { CierrePorInactividad } from "@/modulos/seguridad/componentes/CierrePorInactividad"
 
 export function App() {
   return (
@@ -16,6 +17,7 @@ export function App() {
         <TooltipProvider delay={300}>
           <SesionProvider>
             <RouterProvider router={router} />
+            <CierrePorInactividad />
           </SesionProvider>
         </TooltipProvider>
         <Toaster />

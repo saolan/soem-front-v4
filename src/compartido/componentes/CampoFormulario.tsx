@@ -6,6 +6,7 @@ import {
   type Path,
 } from "react-hook-form"
 
+import { MARGEN_DESPLAZAMIENTO_CAMPO } from "@/compartido/componentes/clasesCampo"
 import { EtiquetaCampo } from "@/compartido/componentes/EtiquetaCampo"
 import {
   Field,
@@ -13,6 +14,7 @@ import {
   FieldError,
 } from "@/compartido/componentes/ui/field"
 import { Input } from "@/compartido/componentes/ui/input"
+import { cn } from "@/compartido/utilidades/cn"
 
 interface PropsCampoFormulario<T extends FieldValues> extends Omit<
   React.ComponentProps<typeof Input>,
@@ -35,6 +37,7 @@ export function CampoFormulario<T extends FieldValues>({
   descripcion,
   obligatorio = false,
   id,
+  className,
   ...props
 }: PropsCampoFormulario<T>) {
   const idGenerado = useId()
@@ -56,6 +59,7 @@ export function CampoFormulario<T extends FieldValues>({
             {...field}
             value={field.value ?? ""}
             id={idCampo}
+            className={cn(MARGEN_DESPLAZAMIENTO_CAMPO, className)}
             aria-required={obligatorio || undefined}
             aria-invalid={fieldState.invalid}
             aria-describedby={

@@ -85,7 +85,7 @@ export function FormularioSucursal({
       autoComplete="off"
       className="flex flex-col gap-6"
     >
-      <AvisoError mensaje={aviso} />
+      <AvisoError mensaje={aviso} enfocar />
       <fieldset disabled={soloLectura} className="flex flex-col gap-6">
         <SeccionFormulario titulo="Identificación">
           <GrillaCampos>

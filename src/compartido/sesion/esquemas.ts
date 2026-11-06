@@ -30,6 +30,9 @@ export const esquemaLoginRespuestaDTO = z.object({
   usuario: esquemaUsuarioDTO,
   permisos: z.array(z.string()),
   claveCaducada: z.boolean(),
+  // Pendiente en el back-end: minutos sin uso tras los que el front cierra la
+  // sesión. Mientras no llegue se usa INACTIVIDAD_POR_DEFECTO_SEGUNDOS.
+  inactividadSegundos: z.number().int().positive().nullish(),
 })
 
 export type UsuarioDTO = z.infer<typeof esquemaUsuarioDTO>

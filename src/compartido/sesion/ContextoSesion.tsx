@@ -108,9 +108,13 @@ export function SesionProvider({ children }: { children: React.ReactNode }) {
         return
       }
       const anterior = usuarioActual.current
-      void renovarSesion().then((renovada) => {
-        if (!renovada) {
+      // Si la renovación falla por red o servidor ("fallida") se conserva la
+      // sesión: la siguiente petición vuelve a renovar el token.
+      void renovarSesion().then((renovacion) => {
+        if (renovacion === "rechazada") {
           cerrarLocal()
+        } else if (renovacion === "fallida") {
+          return
         } else if (anterior !== usuarioActual.current) {
           // Lo que hay en caché pertenece al usuario anterior.
           queryClient.clear()
@@ -123,8 +127,8 @@ export function SesionProvider({ children }: { children: React.ReactNode }) {
     // El access token se pierde al recargar: se recupera con la cookie del
     // refresh token. renovarSesion es single-flight, por lo que el doble
     // montaje de StrictMode no dispara dos refresh.
-    void renovarSesion().then((renovada) => {
-      if (!renovada) {
+    void renovarSesion().then((renovacion) => {
+      if (renovacion !== "renovada") {
         setEstado((actual) => (actual === "cargando" ? "anonimo" : actual))
       }
     })

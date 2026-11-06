@@ -6,6 +6,9 @@ import { ErrorApi, mensajeDeError } from "@/compartido/api/errores"
  * Refleja los `errores` del back-end en los campos del formulario y devuelve
  * el mensaje general a mostrar como aviso. `alias` traduce nombres de campo
  * que el back-end devuelve distintos al DTO (ej. `certificadoEmisor.clave`).
+ *
+ * Enfoca el primer campo con error (en un formulario largo puede estar fuera
+ * de la vista); los demás solo se marcan.
  */
 export function aplicarErroresFormulario<T extends FieldValues>(
   error: unknown,
@@ -14,11 +17,17 @@ export function aplicarErroresFormulario<T extends FieldValues>(
   alias: Readonly<Record<string, Path<T>>> = {}
 ): string {
   if (error instanceof ErrorApi) {
+    let enfocado = false
     for (const { campo, detalle } of error.errores) {
       const nombre = campo ? (alias[campo] ?? campo) : null
       const campoFormulario = campos.find((c) => c === nombre)
       if (campoFormulario) {
-        setError(campoFormulario, { type: "server", message: detalle })
+        setError(
+          campoFormulario,
+          { type: "server", message: detalle },
+          { shouldFocus: !enfocado }
+        )
+        enfocado = true
       }
     }
   }

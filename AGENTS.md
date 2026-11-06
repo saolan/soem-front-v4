@@ -214,8 +214,8 @@ src/
 - Autenticación con MicroProfile JWT del back-end:
   - `POST /auth/login` `{ usuario, clave, sucursalId? }` → `LoginRespuestaDTO`
     (`accessToken`, `expiraEnSegundos`, `sucursalId`, `sucursales`
-    (`ComboDTO[]` accesibles), `usuario`, `permisos`, `claveCaducada`) +
-    cookie `refreshToken`. El login del front no pide sucursal: el back-end
+    (`ComboDTO[]` accesibles), `usuario`, `permisos`, `claveCaducada`,
+    `inactividadSegundos`) + cookie `refreshToken`. El login del front no pide sucursal: el back-end
     asigna una por defecto y se cambia desde la cabecera.
   - `POST /auth/refresh` → mismo `LoginRespuestaDTO` + rotación de la cookie;
     al recargar repone toda la sesión (no hace falta `/auth/me`).
@@ -228,9 +228,25 @@ src/
     llegó la cookie (la sesión queda cerrada y hay que volver al login).
 - El access token (15 min) se guarda **solo en memoria** (contexto de sesión) y
   se envía como `Authorization: Bearer <token>`.
-- El refresh token (7 días) vive en una cookie `HttpOnly`, `Secure`,
-  `SameSite=Strict`, `path=/api/v1/auth`. El front no puede ni debe leerlo.
-  Las llamadas a `/auth/*` se hacen con `credentials: 'include'`.
+- El refresh token vence por **inactividad**: cada emisión o rotación lo fija
+  en ahora + 35 min (`soem.jwt.refresh-token.inactividad-minutos`), sin
+  máximo absoluto de sesión. Vive en una cookie de sesión del navegador (sin
+  `Max-Age`: se pierde al cerrarlo) `HttpOnly`, `Secure`, `SameSite=Strict`,
+  `path=/api/v1/auth`. El front no puede ni debe leerlo. Las llamadas a
+  `/auth/*` se hacen con `credentials: 'include'`.
+- Cierre por inactividad (`useCierrePorInactividad` +
+  `modulos/seguridad/componentes/CierrePorInactividad.tsx`):
+  - El front cierra la sesión tras `inactividadSegundos` sin uso (1800 s,
+    `soem.jwt.sesion.inactividad-segundos`; 30 min por defecto si no llega),
+    siempre antes que el servidor (35 min) para que el usuario vea el aviso.
+  - Cuenta como uso el teclado, el puntero, la rueda y los toques, aunque no
+    haya llamadas al API; la actividad se comparte entre pestañas
+    (BroadcastChannel `soem-actividad`).
+  - Avisa 60 s antes con opción de continuar (WCAG 2.2.1); al vencer llama a
+    `/auth/logout` y vuelve al login.
+  - Con actividad, renueva el token cuando pasó la mitad de la ventana desde
+    la última renovación, para que el vencimiento del servidor avance con el
+    uso real.
 - Prohibido guardar tokens en `localStorage`, `sessionStorage`, IndexedDB,
   cookies accesibles por JS o en la URL. Prohibido registrarlos en consola.
 - `clienteHttp`:
@@ -242,8 +258,15 @@ src/
     `/auth/logout` (credenciales inválidas llegan como `401` **con**
     `RespuestaApi`); sí en `/auth/me`, `/cambiar-clave` y `/cambiar-sucursal`,
     que usan el access token.
-  - Si el refresh falla, limpia la sesión, el caché de TanStack Query y
-    redirige a login conservando la ruta de retorno.
+  - Si el refresh responde `401` (sesión vencida o revocada), limpia la
+    sesión, el caché de TanStack Query y redirige a login conservando la ruta
+    de retorno. Ante fallos de red o `5xx` **no** cierra la sesión: la
+    petición falla con un error reintentable y la siguiente vuelve a renovar.
+  - Las pestañas comparten la cookie: el refresh se serializa entre ellas con
+    `navigator.locks` (`soem-refresh`). El back-end rechaza con `401`, sin
+    revocar las demás sesiones, un token rotado hace menos de 30 s
+    (`soem.jwt.refresh-token.gracia-reuso-segundos`); fuera de ese margen lo
+    trata como reuso y revoca todas las sesiones del usuario.
   - No envíes encabezados fuera de `Authorization`, `Content-Type` y `Accept`
     (son los únicos permitidos por CORS).
 - Al iniciar la aplicación (o recargar la página) se llama a `/auth/refresh`
