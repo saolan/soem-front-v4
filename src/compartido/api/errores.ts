@@ -16,12 +16,21 @@ export class ErrorApi extends Error {
   }
 }
 
+// 502, 503 y 504 los emite el proxy (Vite en desarrollo, Nginx en
+// producción) cuando WildFly está detenido, reiniciándose o no responde a
+// tiempo; llegan sin RespuestaApi.
+const SERVIDOR_NO_DISPONIBLE =
+  "El servidor no está disponible en este momento. Intente nuevamente en unos minutos."
+
 const MENSAJES_POR_ESTADO: Record<number, string> = {
   0: "No se pudo conectar con el servidor",
   401: "Debe iniciar sesión nuevamente",
   403: "No tiene permiso para realizar esta acción",
   404: "El recurso solicitado no existe",
   409: "La operación entra en conflicto con otro registro",
+  502: SERVIDOR_NO_DISPONIBLE,
+  503: SERVIDOR_NO_DISPONIBLE,
+  504: SERVIDOR_NO_DISPONIBLE,
 }
 
 export function mensajePorEstado(estado: number): string {
