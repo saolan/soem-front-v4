@@ -6,6 +6,8 @@ import {
 } from "@/compartido/utilidades/rutasMenu"
 import {
   RUTA_NUEVA_SUCURSAL,
+  RUTA_NUEVO_PRECIO,
+  RUTA_PRECIOS,
   RUTA_SUCURSALES,
 } from "@/modulos/configuracion/constantes"
 
@@ -44,13 +46,44 @@ const rutasSucursales: RouteObject[] = [
   },
 ]
 
+const menuPrecios = {
+  rutaMenu: RUTA_PRECIOS,
+} satisfies HandleRutaMenu
+
+const rutasPrecios: RouteObject[] = [
+  {
+    path: RUTA_PRECIOS,
+    handle: menuPrecios,
+    lazy: async () => ({
+      Component: (await import("@/modulos/configuracion/paginas/PaginaPrecios"))
+        .PaginaPrecios,
+    }),
+  },
+  {
+    path: RUTA_NUEVO_PRECIO,
+    handle: menuPrecios,
+    lazy: async () => ({
+      Component: (await import("@/modulos/configuracion/paginas/PaginaPrecio"))
+        .PaginaNuevoPrecio,
+    }),
+  },
+  {
+    path: `${RUTA_PRECIOS}/:precioId`,
+    handle: menuPrecios,
+    lazy: async () => ({
+      Component: (await import("@/modulos/configuracion/paginas/PaginaPrecio"))
+        .PaginaPrecio,
+    }),
+  },
+]
+
 export const rutasConfiguracion: RouteObject[] = [
   ...rutasSucursales,
+  ...rutasPrecios,
   // Pantallas del menú registradas en el router (aún sin implementar).
   ...rutasPendientes([
     "/configuracion/certificados-emisor",
     "/configuracion/bodegas",
-    "/configuracion/precios",
     "/configuracion/mesas",
     "/configuracion/sucursales-bodegas",
     "/configuracion/sucursales-precios",

@@ -3,28 +3,35 @@ import { useLocation } from "react-router"
 
 import { BotonIcono, EnlaceIcono } from "@/compartido/componentes/BotonIcono"
 import { estadoRetorno } from "@/compartido/hooks/useRutaRetorno"
-import { rutaSucursal } from "@/modulos/configuracion/constantes"
-import type { SucursalDTO } from "@/modulos/configuracion/esquemas/sucursal"
 
-interface PropsAccionesSucursal {
-  sucursal: SucursalDTO
+interface PropsAccionesRegistro {
+  /** Texto que identifica el registro en los nombres accesibles. */
+  descripcion: string
+  /** Ruta del detalle (edición o consulta). */
+  ruta: string
+  activo: boolean
   puedeModificar: boolean
   puedeEliminar: boolean
-  onEliminar: (sucursal: SucursalDTO) => void
-  onActivar: (sucursal: SucursalDTO) => void
+  onEliminar: () => void
+  onActivar: () => void
   /** Hay una reactivación en curso (evita envíos duplicados). */
   activando: boolean
 }
 
-/** Modificar (o ver), eliminar o activar una sucursal del listado. */
-export function AccionesSucursal({
-  sucursal,
+/**
+ * Acciones de una fila de un listado con borrado lógico: modificar (o ver),
+ * eliminar el registro activo o reactivar el inactivo.
+ */
+export function AccionesRegistro({
+  descripcion,
+  ruta,
+  activo,
   puedeModificar,
   puedeEliminar,
   onEliminar,
   onActivar,
   activando,
-}: PropsAccionesSucursal) {
+}: PropsAccionesRegistro) {
   // El detalle vuelve al listado con sus filtros, orden y página.
   const { search } = useLocation()
   const accionDetalle = puedeModificar ? "Modificar" : "Ver"
@@ -32,10 +39,10 @@ export function AccionesSucursal({
     <div className="flex items-center gap-1">
       <EnlaceIcono
         etiqueta={accionDetalle}
-        ruta={rutaSucursal(sucursal.sucursalId)}
+        ruta={ruta}
         estado={estadoRetorno(search)}
         className="text-primary hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent"
-        aria-label={`${accionDetalle} ${sucursal.descri}`}
+        aria-label={`${accionDetalle} ${descripcion}`}
       >
         {puedeModificar ? (
           <PencilIcon aria-hidden="true" />
@@ -43,23 +50,23 @@ export function AccionesSucursal({
           <EyeIcon aria-hidden="true" />
         )}
       </EnlaceIcono>
-      {/* Borrado lógico: la activa se elimina y la inactiva se reactiva. */}
-      {puedeEliminar && sucursal.estado && (
+      {/* Borrado lógico: el activo se elimina y el inactivo se reactiva. */}
+      {puedeEliminar && activo && (
         <BotonIcono
           etiqueta="Eliminar"
           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-          aria-label={`Eliminar ${sucursal.descri}`}
-          onClick={() => onEliminar(sucursal)}
+          aria-label={`Eliminar ${descripcion}`}
+          onClick={onEliminar}
         >
           <Trash2Icon aria-hidden="true" />
         </BotonIcono>
       )}
-      {puedeEliminar && !sucursal.estado && (
+      {puedeEliminar && !activo && (
         <BotonIcono
           etiqueta="Activar"
-          aria-label={`Activar ${sucursal.descri}`}
+          aria-label={`Activar ${descripcion}`}
           disabled={activando}
-          onClick={() => onActivar(sucursal)}
+          onClick={onActivar}
         >
           <RotateCcwIcon aria-hidden="true" />
         </BotonIcono>
