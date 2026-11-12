@@ -6,10 +6,13 @@ import {
   type Path,
 } from "react-hook-form"
 
-import type { ComboDTO } from "@/compartido/api/esquemas"
 import { MARGEN_DESPLAZAMIENTO_CAMPO } from "@/compartido/componentes/clasesCampo"
 import { EtiquetaCampo } from "@/compartido/componentes/EtiquetaCampo"
-import { Field, FieldError } from "@/compartido/componentes/ui/field"
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+} from "@/compartido/componentes/ui/field"
 import {
   Select,
   SelectContent,
@@ -23,8 +26,13 @@ interface PropsCampoSeleccion<T extends FieldValues> {
   control: Control<T>
   name: Path<T>
   etiqueta: string
-  /** Opciones de un `/recurso/combo`. */
-  opciones: ComboDTO[]
+  /** Texto de ayuda bajo el control, asociado con aria-describedby. */
+  descripcion?: string
+  /**
+   * Opciones de un `/recurso/combo` (`valor` numérico) o de un dominio
+   * cerrado del DTO (`valor` de texto, ej. un enum en MAYÚSCULAS).
+   */
+  opciones: readonly OpcionSeleccion[]
   placeholder?: string
   disabled?: boolean
   /** Marca el campo como obligatorio (asterisco y `aria-required`). */
@@ -40,13 +48,20 @@ interface PropsCampoSeleccion<T extends FieldValues> {
   className?: string
 }
 
-type Item = { value: number; label: string }
+/** Opción de la lista; un `ComboDTO` lo es. */
+export interface OpcionSeleccion {
+  valor: number | string
+  etiqueta: string
+}
 
-/** Lista desplegable de un combo (`valor` numérico) para React Hook Form. */
+type Item = { value: number | string; label: string }
+
+/** Lista desplegable de un combo o un dominio cerrado para React Hook Form. */
 export function CampoSeleccion<T extends FieldValues>({
   control,
   name,
   etiqueta,
+  descripcion,
   opciones,
   placeholder = "Seleccione…",
   disabled,
@@ -57,6 +72,7 @@ export function CampoSeleccion<T extends FieldValues>({
 }: PropsCampoSeleccion<T>) {
   const idCampo = useId()
   const idError = `${idCampo}-error`
+  const idDescripcion = `${idCampo}-descripcion`
   const items: Item[] = opciones.map(({ valor, etiqueta: texto }) => ({
     value: valor,
     label: texto,
@@ -66,7 +82,7 @@ export function CampoSeleccion<T extends FieldValues>({
   // como opción para que el usuario elija una vigente.
   const itemsConValor = (valor: unknown): Item[] =>
     cargando ||
-    typeof valor !== "number" ||
+    (typeof valor !== "number" && typeof valor !== "string") ||
     items.some((item) => item.value === valor)
       ? items
       : [...items, { value: valor, label: etiquetaNoDisponible }]
@@ -96,7 +112,11 @@ export function CampoSeleccion<T extends FieldValues>({
               onBlur={field.onBlur}
               aria-invalid={fieldState.invalid}
               aria-required={obligatorio || undefined}
-              aria-describedby={fieldState.error ? idError : undefined}
+              aria-describedby={
+                [descripcion && idDescripcion, fieldState.error && idError]
+                  .filter(Boolean)
+                  .join(" ") || undefined
+              }
             >
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>
@@ -108,6 +128,11 @@ export function CampoSeleccion<T extends FieldValues>({
               ))}
             </SelectContent>
           </Select>
+          {descripcion && (
+            <FieldDescription id={idDescripcion}>
+              {descripcion}
+            </FieldDescription>
+          )}
           {fieldState.error && (
             <FieldError id={idError} errors={[fieldState.error]} />
           )}

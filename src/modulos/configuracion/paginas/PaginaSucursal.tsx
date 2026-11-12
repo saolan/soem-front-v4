@@ -6,6 +6,7 @@ import { mensajeDeError } from "@/compartido/api/errores"
 import { AvisoError } from "@/compartido/componentes/AvisoError"
 import { DialogoCambiosSinGuardar } from "@/compartido/componentes/DialogoCambiosSinGuardar"
 import { DialogoConfirmacion } from "@/compartido/componentes/DialogoConfirmacion"
+import { EncabezadoDetalle } from "@/compartido/componentes/EncabezadoDetalle"
 import { Skeleton } from "@/compartido/componentes/ui/skeleton"
 import { useAvisoCambiosSinGuardar } from "@/compartido/hooks/useAvisoCambiosSinGuardar"
 import { useRutaRetorno } from "@/compartido/hooks/useRutaRetorno"
@@ -22,7 +23,6 @@ import {
   RUTA_SUCURSALES,
   rutaSucursal,
 } from "@/modulos/configuracion/constantes"
-import { EncabezadoSucursal } from "@/modulos/configuracion/componentes/EncabezadoSucursal"
 import { FormularioCertificado } from "@/modulos/configuracion/componentes/FormularioCertificado"
 import { FormularioSucursal } from "@/modulos/configuracion/componentes/FormularioSucursal"
 import {
@@ -34,6 +34,9 @@ import {
 // Qué se perdería al salir con cambios sin guardar (aviso de salida).
 const DATOS_SUCURSAL = "los datos de la sucursal"
 const DATOS_CERTIFICADO = "el certificado de firma electrónica"
+
+// Migas de pan de las pantallas de una sucursal.
+const MIGAS = { modulo: "Configuración", etiquetaListado: "Sucursales" }
 
 /** Alta de una sucursal. Al crearla se pasa a su edición (certificado). */
 export function PaginaNuevaSucursal() {
@@ -59,7 +62,11 @@ export function PaginaNuevaSucursal() {
 
   return (
     <section className="flex flex-col gap-6">
-      <EncabezadoSucursal rutaListado={listado.ruta} />
+      <EncabezadoDetalle
+        {...MIGAS}
+        rutaListado={listado.ruta}
+        titulo="Nueva sucursal"
+      />
       {puedeCrear ? (
         <FormularioSucursal
           valoresIniciales={valoresSucursalNueva}
@@ -133,7 +140,11 @@ function EdicionSucursal({
   if (sucursal.isError) {
     return (
       <>
-        <EncabezadoSucursal rutaListado={rutaListado} titulo="Sucursal" />
+        <EncabezadoDetalle
+          {...MIGAS}
+          rutaListado={rutaListado}
+          titulo="Sucursal"
+        />
         <AvisoError mensaje={mensajeDeError(sucursal.error)} />
       </>
     )
@@ -162,6 +173,17 @@ function EdicionSucursal({
       return true
     })
 
+  // Eliminar desde el encabezado: borrado lógico y vuelta al listado.
+  const eliminarDesdeEncabezado = async () => {
+    try {
+      const { mensaje } = await eliminar.mutateAsync(sucursalId)
+      toast.success(mensaje)
+      void navegar(rutaListado)
+    } catch (error) {
+      toast.error(mensajeDeError(error))
+    }
+  }
+
   // El certificado ya está guardado (su `reset` aún no se refleja en
   // `cambiosCertificado`); si la sucursal tiene cambios, se avisa. El bloqueo
   // se evalúa al iniciar la navegación, por eso no se espera.
@@ -172,10 +194,25 @@ function EdicionSucursal({
 
   return (
     <>
-      <EncabezadoSucursal
+      <EncabezadoDetalle
+        {...MIGAS}
         rutaListado={rutaListado}
-        sucursal={sucursal.data}
-        puedeEliminar={puedeEliminar}
+        titulo={sucursal.data.descri}
+        eliminacion={
+          puedeEliminar && estadoActual
+            ? {
+                titulo: "Eliminar sucursal",
+                descripcion: (
+                  <>
+                    La sucursal <strong>{sucursal.data.descri}</strong> quedará
+                    inactiva. ¿Desea continuar?
+                  </>
+                ),
+                pendiente: eliminar.isPending,
+                onConfirmar: eliminarDesdeEncabezado,
+              }
+            : undefined
+        }
       />
       <FormularioSucursal
         valoresIniciales={aFormularioSucursal(sucursal.data)}
@@ -226,7 +263,11 @@ export function PaginaSucursal() {
     <section className="flex flex-col gap-6">
       {id === null ? (
         <>
-          <EncabezadoSucursal rutaListado={listado.ruta} titulo="Sucursal" />
+          <EncabezadoDetalle
+            {...MIGAS}
+            rutaListado={listado.ruta}
+            titulo="Sucursal"
+          />
           <AvisoError mensaje="El recurso solicitado no existe" />
         </>
       ) : (
