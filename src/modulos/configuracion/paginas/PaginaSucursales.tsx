@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router"
 import { toast } from "sonner"
 
 import { mensajeDeError } from "@/compartido/api/errores"
+import { AccionesRegistro } from "@/compartido/componentes/AccionesRegistro"
 import { DialogoConfirmacion } from "@/compartido/componentes/DialogoConfirmacion"
 import { EncabezadoPagina } from "@/compartido/componentes/EncabezadoPagina"
 import { EtiquetaEstado } from "@/compartido/componentes/EtiquetaEstado"
@@ -25,8 +26,8 @@ import {
 import {
   RECURSO_CONFIGURACION,
   RUTA_NUEVA_SUCURSAL,
+  rutaSucursal,
 } from "@/modulos/configuracion/constantes"
-import { AccionesSucursal } from "@/modulos/configuracion/componentes/AccionesSucursal"
 import { FiltrosSucursales } from "@/modulos/configuracion/componentes/FiltrosSucursales"
 import { TarjetaSucursal } from "@/modulos/configuracion/componentes/TarjetaSucursal"
 import {
@@ -67,12 +68,14 @@ export function PaginaSucursales() {
   // Compartido por la columna de la tabla y la tarjeta móvil.
   const acciones = useCallback(
     (sucursal: SucursalDTO) => (
-      <AccionesSucursal
-        sucursal={sucursal}
+      <AccionesRegistro
+        descripcion={sucursal.descri}
+        ruta={rutaSucursal(sucursal.sucursalId)}
+        activo={sucursal.estado}
         puedeModificar={puedeModificar}
         puedeEliminar={puedeEliminar}
-        onEliminar={setPorEliminar}
-        onActivar={activar}
+        onEliminar={() => setPorEliminar(sucursal)}
+        onActivar={() => activar(sucursal)}
         activando={activando}
       />
     ),
