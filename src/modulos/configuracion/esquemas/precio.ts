@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import type { OpcionSeleccion } from "@/compartido/componentes/CampoSeleccion"
+import type { OpcionTarjeta } from "@/compartido/componentes/CampoOpcionesTarjeta"
 
 // Valores de `alcanc` (enum AlcancePrecio; viajan por nombre en MAYÚSCULAS).
 export const ALCANCES_PRECIO = ["NINGUNO", "TODOS"] as const
@@ -28,10 +28,26 @@ export const LONGITUDES_PRECIO = {
   factor: 13,
 } as const
 
-// En pantalla se muestra el mismo valor del API (TODOS / NINGUNO).
-export const OPCIONES_ALCANCE: OpcionSeleccion[] = ALCANCES_PRECIO.map(
-  (valor) => ({ valor, etiqueta: valor })
-)
+// Texto legible de `alcanc`; al API viaja el valor (TODOS / NINGUNO).
+export const ETIQUETAS_ALCANCE: Record<AlcancePrecio, string> = {
+  TODOS: "Todos",
+  NINGUNO: "Ninguno",
+}
+
+// Consecuencia de cada alcance al crear la lista (PrecioServicio#crear).
+export const OPCIONES_ALCANCE: OpcionTarjeta[] = [
+  {
+    valor: "TODOS",
+    titulo: ETIQUETAS_ALCANCE.TODOS,
+    descripcion: "Crea el precio en cero de cada producto activo.",
+  },
+  {
+    valor: "NINGUNO",
+    titulo: ETIQUETAS_ALCANCE.NINGUNO,
+    descripcion:
+      "No se crean precios para esta lista. El usuario debe crear los precios de los productos que necesite.",
+  },
+]
 
 // Hasta 6 enteros y 6 decimales, con punto decimal (formato de BigDecimal).
 const FACTOR_DECIMAL = /^\d{1,6}(\.\d{1,6})?$/
@@ -42,8 +58,7 @@ const obligatorio = (mensaje: string, max: number, mensajeMax: string) =>
   z.string().trim().min(1, mensaje).max(max, mensajeMax)
 
 // Replica las reglas de Bean Validation de PrecioDTO. La validación
-// definitiva la hace el back-end (unicidad de código y descripción, lista
-// asignada a sucursales al desactivar).
+// definitiva la hace el back-end (unicidad de código y descripción).
 export const esquemaPrecioFormulario = z.object({
   codigo: obligatorio(
     "El código es obligatorio",
@@ -102,8 +117,10 @@ export function aFormularioPrecio(dto: PrecioDTO): PrecioFormulario {
 }
 
 /**
- * Cuerpo de POST/PUT (PrecioDTO sin `precioId`). El PUT ignora `alcanc`
- * (inmutable) y sí aplica `estado`.
+ * Cuerpo de POST/PUT (PrecioDTO sin `precioId` ni `estado`). El PUT ignora
+ * `alcanc` (inmutable). `estado` es de solo lectura en la API: el alta crea
+ * la lista activa y solo cambia con DELETE y PUT /precios/{id}/activar
+ * (../soem/.../configuracion/dto/PrecioDTO.java).
  */
 export function aCuerpoPrecio(formulario: PrecioFormulario) {
   return {
@@ -111,7 +128,6 @@ export function aCuerpoPrecio(formulario: PrecioFormulario) {
     descri: formulario.descri,
     alcanc: formulario.alcanc,
     factor: formulario.factor,
-    estado: formulario.estado,
   }
 }
 

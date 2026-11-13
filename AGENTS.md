@@ -387,6 +387,15 @@ Generar interfaces:
     UI cuando la lista requiera búsqueda.
   - Deshabilita el envío mientras la mutación está en curso para evitar
     duplicados.
+  - Texto del botón principal: verbo + objeto, nunca un "Guardar" o "Aceptar"
+    genérico.
+    - Alta: `Crear <entidad>` con el nombre corto de la entidad en singular y
+      en minúsculas (`Crear precio`, `Crear sucursal`, `Crear producto`), no
+      la descripción larga del recurso (`Crear lista de precio`).
+    - Edición: `Guardar cambios` (deshabilitado hasta que haya cambios).
+    - Sub-formulario dentro de otra pantalla: `Guardar <objeto>` (ej.
+      `Guardar certificado`), para distinguirlo del formulario principal.
+    - Mientras se envía: `Guardando…`.
 - Grillas editables (detalle de documentos): TanStack Table con celdas
   editables y navegación por teclado tipo hoja de cálculo; los totales se
   muestran tal como los devuelve el back-end.

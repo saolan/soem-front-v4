@@ -5,6 +5,7 @@ import {
   CampoFiltroSeleccion,
   CampoFiltroTexto,
 } from "@/compartido/componentes/CampoFiltro"
+import { OPCIONES_FILTRO_ESTADO } from "@/compartido/componentes/EtiquetaEstado"
 import { PanelFiltros } from "@/compartido/componentes/PanelFiltros"
 import { Button } from "@/compartido/componentes/ui/button"
 import type { FiltroPrecio } from "@/modulos/configuracion/esquemas/precio"
@@ -18,12 +19,6 @@ const CAMPOS_TEXTO: { nombre: FiltroPrecio; etiqueta: string }[] = [
 
 // En xl los campos se reparten la línea y los botones van al final.
 const CLASE_CAMPO = "xl:min-w-0 xl:flex-1"
-
-const OPCIONES_ESTADO = [
-  { value: "", label: "Todos" },
-  { value: "true", label: "Activos" },
-  { value: "false", label: "Inactivos" },
-]
 
 /**
  * Filtros del listado de listas de precio. Se aplican al enviar el
@@ -65,7 +60,7 @@ export function FiltrosPrecios({
         <CampoFiltroSeleccion
           className={CLASE_CAMPO}
           etiqueta="Estado"
-          opciones={OPCIONES_ESTADO}
+          opciones={OPCIONES_FILTRO_ESTADO}
           valor={valores.estado ?? ""}
           onCambio={(valor) => cambiar("estado", valor)}
         />

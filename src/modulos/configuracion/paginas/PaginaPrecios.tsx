@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from "react"
 import { Link, useLocation } from "react-router"
 import { toast } from "sonner"
 
-import { mensajeDeError } from "@/compartido/api/errores"
+import { detalleDeError, mensajeDeError } from "@/compartido/api/errores"
 import { AccionesRegistro } from "@/compartido/componentes/AccionesRegistro"
 import { DialogoConfirmacion } from "@/compartido/componentes/DialogoConfirmacion"
 import { EncabezadoPagina } from "@/compartido/componentes/EncabezadoPagina"
@@ -12,6 +12,7 @@ import {
   TablaPaginada,
   type ColumnaTabla,
 } from "@/compartido/componentes/TablaPaginada"
+import { Badge } from "@/compartido/componentes/ui/badge"
 import { buttonVariants } from "@/compartido/componentes/ui/button"
 import { Separator } from "@/compartido/componentes/ui/separator"
 import { useParametrosListado } from "@/compartido/hooks/useParametrosListado"
@@ -32,6 +33,7 @@ import { FiltrosPrecios } from "@/modulos/configuracion/componentes/FiltrosPreci
 import { TarjetaPrecio } from "@/modulos/configuracion/componentes/TarjetaPrecio"
 import {
   CAMPOS_ORDEN_PRECIO,
+  ETIQUETAS_ALCANCE,
   FILTROS_PRECIO,
   type PrecioDTO,
 } from "@/modulos/configuracion/esquemas/precio"
@@ -58,9 +60,12 @@ export function PaginaPrecios() {
   const { mutate: mutarActivar, isPending: activando } = useActivarPrecio()
   const activar = useCallback(
     (precio: PrecioDTO) =>
-      mutarActivar(precio, {
+      mutarActivar(precio.precioId, {
         onSuccess: ({ mensaje }) => toast.success(mensaje),
-        onError: (error) => toast.error(mensajeDeError(error)),
+        onError: (error) =>
+          toast.error(mensajeDeError(error), {
+            description: detalleDeError(error),
+          }),
       }),
     [mutarActivar]
   )
@@ -109,7 +114,12 @@ export function PaginaPrecios() {
         id: "alcanc",
         accessorKey: "alcanc",
         header: "Alcance",
-        meta: { clase: "w-28" },
+        meta: { clase: "w-44" },
+        cell: ({ row }) => (
+          <Badge variant="secondary">
+            {ETIQUETAS_ALCANCE[row.original.alcanc]}
+          </Badge>
+        ),
       },
       {
         id: "estado",
@@ -135,7 +145,10 @@ export function PaginaPrecios() {
     }
     eliminar.mutate(porEliminar.precioId, {
       onSuccess: ({ mensaje }) => toast.success(mensaje),
-      onError: (error) => toast.error(mensajeDeError(error)),
+      onError: (error) =>
+        toast.error(mensajeDeError(error), {
+          description: detalleDeError(error),
+        }),
       onSettled: () => setPorEliminar(null),
     })
   }
@@ -193,8 +206,9 @@ export function PaginaPrecios() {
         titulo="Eliminar lista de precio"
         descripcion={
           <>
-            La lista de precio <strong>{porEliminar?.descri}</strong> quedará
-            inactiva. ¿Desea continuar?
+            La lista de precio <strong>{porEliminar?.descri}</strong> quedará en
+            estado Inactivo y los roles perderán el acceso a ella. ¿Desea
+            continuar?
           </>
         }
         textoConfirmar="Eliminar"

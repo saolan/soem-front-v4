@@ -61,7 +61,13 @@ export function CampoFiltroTexto({
 }
 
 /**
- * Combo de un filtro. Siempre tiene una opción seleccionada (ej. "Todos"),
+ * Opción "sin filtro" de los combos de filtro (valor vacío). Mismo texto en
+ * todos los listados, sin concordar con el campo.
+ */
+export const OPCION_FILTRO_TODO = { value: "", label: "Todo" }
+
+/**
+ * Combo de un filtro. Siempre tiene una opción seleccionada (ej. "Todo"),
  * por eso su etiqueta va fija sobre el borde.
  */
 export function CampoFiltroSeleccion({

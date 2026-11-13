@@ -4,7 +4,9 @@ import { useState } from "react"
 import {
   CampoFiltroSeleccion,
   CampoFiltroTexto,
+  OPCION_FILTRO_TODO,
 } from "@/compartido/componentes/CampoFiltro"
+import { OPCIONES_FILTRO_ESTADO } from "@/compartido/componentes/EtiquetaEstado"
 import { PanelFiltros } from "@/compartido/componentes/PanelFiltros"
 import { Button } from "@/compartido/componentes/ui/button"
 import type { FiltroSucursal } from "@/modulos/configuracion/esquemas/sucursal"
@@ -20,14 +22,8 @@ const CAMPOS_TEXTO: { nombre: FiltroSucursal; etiqueta: string }[] = [
 // En xl los campos se reparten la línea y los botones van al final.
 const CLASE_CAMPO = "xl:min-w-0 xl:flex-1"
 
-const OPCIONES_ESTADO = [
-  { value: "", label: "Todos" },
-  { value: "true", label: "Activos" },
-  { value: "false", label: "Inactivos" },
-]
-
 const OPCIONES_MATRIZ = [
-  { value: "", label: "Todas" },
+  OPCION_FILTRO_TODO,
   { value: "true", label: "Solo matriz" },
   { value: "false", label: "Sin matriz" },
 ]
@@ -79,7 +75,7 @@ export function FiltrosSucursales({
         <CampoFiltroSeleccion
           className={CLASE_CAMPO}
           etiqueta="Estado"
-          opciones={OPCIONES_ESTADO}
+          opciones={OPCIONES_FILTRO_ESTADO}
           valor={valores.estado ?? ""}
           onCambio={(valor) => cambiar("estado", valor)}
         />

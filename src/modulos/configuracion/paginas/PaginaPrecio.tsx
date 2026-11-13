@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useNavigate, useParams } from "react-router"
 import { toast } from "sonner"
 
-import { mensajeDeError } from "@/compartido/api/errores"
+import { detalleDeError, mensajeDeError } from "@/compartido/api/errores"
 import { AvisoError } from "@/compartido/componentes/AvisoError"
 import { DialogoCambiosSinGuardar } from "@/compartido/componentes/DialogoCambiosSinGuardar"
 import { DialogoConfirmacion } from "@/compartido/componentes/DialogoConfirmacion"
@@ -12,6 +12,7 @@ import { useAvisoCambiosSinGuardar } from "@/compartido/hooks/useAvisoCambiosSin
 import { useRutaRetorno } from "@/compartido/hooks/useRutaRetorno"
 import { useTienePermiso } from "@/compartido/sesion/useTienePermiso"
 import {
+  useActivarPrecio,
   useCrearPrecio,
   useEliminarPrecio,
   useModificarPrecio,
@@ -64,7 +65,7 @@ export function PaginaNuevoPrecio() {
           valoresIniciales={valoresPrecioNuevo}
           esAlta
           soloLectura={false}
-          textoGuardar="Crear lista de precio"
+          textoGuardar="Crear precio"
           onGuardar={guardar}
           onCancelar={() => void navegar(listado.ruta)}
           onCambiosPendientes={setCambios}
@@ -100,6 +101,7 @@ function EdicionPrecio({
   const precio = usePrecio(precioId)
   const modificar = useModificarPrecio(precioId)
   const eliminar = useEliminarPrecio()
+  const activar = useActivarPrecio()
   const puedeModificar = useTienePermiso(RECURSO_CONFIGURACION, "modificar")
   const puedeEliminar = useTienePermiso(RECURSO_CONFIGURACION, "eliminar")
   // Confirmación de la desactivación: guarda el `resolve` de la promesa que
@@ -136,8 +138,9 @@ function EdicionPrecio({
 
   const estadoActual = precio.data.estado
 
-  // El PUT aplica también el estado. Desactivar pide confirmación; si la
-  // lista está asignada a sucursales el back-end responde 409 en `estado`.
+  // El PUT ignora el estado: si el interruptor cambió se aplica después con
+  // DELETE (desactivar, previa confirmación) o PUT /activar, que quitan o
+  // restablecen el acceso de los roles (ROL_PREC). Mismo flujo que sucursales.
   const guardar = (valores: PrecioFormulario) =>
     salida.sinAviso("precio", async () => {
       const desactiva = estadoActual && !valores.estado
@@ -146,6 +149,12 @@ function EdicionPrecio({
       }
       const { mensaje } = await modificar.mutateAsync(valores)
       toast.success(mensaje)
+      if (valores.estado !== estadoActual) {
+        const respuesta = valores.estado
+          ? await activar.mutateAsync(precioId)
+          : await eliminar.mutateAsync(precioId)
+        toast.success(respuesta.mensaje)
+      }
       void navegar(rutaListado)
       return true
     })
@@ -157,7 +166,9 @@ function EdicionPrecio({
       toast.success(mensaje)
       void navegar(rutaListado)
     } catch (error) {
-      toast.error(mensajeDeError(error))
+      toast.error(mensajeDeError(error), {
+        description: detalleDeError(error),
+      })
     }
   }
 
@@ -174,7 +185,8 @@ function EdicionPrecio({
                 descripcion: (
                   <>
                     La lista de precio <strong>{precio.data.descri}</strong>{" "}
-                    quedará inactiva. ¿Desea continuar?
+                    quedará en estado Inactivo y los roles perderán el acceso a
+                    ella. ¿Desea continuar?
                   </>
                 ),
                 pendiente: eliminar.isPending,
@@ -204,8 +216,9 @@ function EdicionPrecio({
         titulo="Desactivar lista de precio"
         descripcion={
           <>
-            La lista de precio <strong>{precio.data.descri}</strong> quedará
-            inactiva. ¿Desea continuar?
+            La lista de precio <strong>{precio.data.descri}</strong> quedará en
+            estado Inactivo y los roles perderán el acceso a ella. ¿Desea
+            continuar?
           </>
         }
         textoConfirmar="Desactivar"

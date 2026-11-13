@@ -11,7 +11,6 @@ import { clienteHttp, type RespuestaHttp } from "@/compartido/api/clienteHttp"
 import type { OrdenListado } from "@/compartido/hooks/useParametrosListado"
 import {
   aCuerpoPrecio,
-  aFormularioPrecio,
   esquemaPrecioDTO,
   type CampoOrdenPrecio,
   type FiltroPrecio,
@@ -93,7 +92,7 @@ export function useCrearPrecio() {
   })
 }
 
-/** El PUT aplica también `estado` (activar o desactivar). */
+/** El PUT ignora `estado`: se cambia con DELETE o PUT /activar. */
 export function useModificarPrecio(id: number) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -108,23 +107,26 @@ export function useModificarPrecio(id: number) {
 }
 
 /**
- * Reactiva una lista inactiva. No hay `/activar`: es un PUT con los datos
- * actuales y `estado = true`.
+ * Revierte el borrado lógico (PUT /precios/{id}/activar, mismo permiso que
+ * eliminar): restablece el acceso de los roles a la lista (ROL_PREC). La respuesta es la lista
+ * activa: actualiza el detalle sin otro GET.
  */
 export function useActivarPrecio() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (precio: PrecioDTO) =>
-      clienteHttp(`/precios/${precio.precioId}`, {
+    mutationFn: (id: number) =>
+      clienteHttp(`/precios/${id}/activar`, {
         metodo: "PUT",
-        cuerpo: aCuerpoPrecio({ ...aFormularioPrecio(precio), estado: true }),
         esquema: esquemaPrecioDTO,
       }),
     onSuccess: (respuesta) => actualizarCachePrecio(queryClient, respuesta),
   })
 }
 
-/** Borrado lógico: el back-end deja la lista con `estado = false`. */
+/**
+ * Borrado lógico sin restricción: el back-end deja la lista con
+ * `estado = false` y les quita a los roles el acceso a ella (ROL_PREC).
+ */
 export function useEliminarPrecio() {
   const queryClient = useQueryClient()
   return useMutation({

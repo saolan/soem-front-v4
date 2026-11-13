@@ -205,7 +205,7 @@ function EdicionSucursal({
                 descripcion: (
                   <>
                     La sucursal <strong>{sucursal.data.descri}</strong> quedará
-                    inactiva. ¿Desea continuar?
+                    en estado Inactivo. ¿Desea continuar?
                   </>
                 ),
                 pendiente: eliminar.isPending,
@@ -242,8 +242,8 @@ function EdicionSucursal({
         titulo="Desactivar sucursal"
         descripcion={
           <>
-            La sucursal <strong>{sucursal.data.descri}</strong> quedará
-            inactiva. ¿Desea continuar?
+            La sucursal <strong>{sucursal.data.descri}</strong> quedará en
+            estado Inactivo. ¿Desea continuar?
           </>
         }
         textoConfirmar="Desactivar"

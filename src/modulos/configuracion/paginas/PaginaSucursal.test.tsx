@@ -154,6 +154,13 @@ describe("PaginaSucursal", () => {
     ).toBeNull()
   })
 
+  it("al abrir el alta el cursor queda en Código", async () => {
+    renderizar("/configuracion/sucursales/nueva")
+
+    const codigo = await screen.findByLabelText("Código")
+    await vi.waitFor(() => expect(document.activeElement).toBe(codigo))
+  })
+
   it("limita la longitud de los campos según el DTO", async () => {
     renderizar("/configuracion/sucursales/nueva")
 
@@ -353,7 +360,7 @@ describe("PaginaSucursal", () => {
     ).toBeNull()
   })
 
-  describe("interruptor Activa", () => {
+  describe("interruptor Estado", () => {
     // `estado` del detalle que devuelve el GET; el PUT /activar la devuelve activa.
     function simularApi(estado: boolean) {
       fetchSimulado.mockImplementation(async (url, init) => {
@@ -386,7 +393,7 @@ describe("PaginaSucursal", () => {
       const usuario = userEvent.setup()
       renderizar("/configuracion/sucursales/7")
 
-      await usuario.click(await screen.findByRole("switch", { name: "Activa" }))
+      await usuario.click(await screen.findByRole("switch", { name: "Estado" }))
       await usuario.click(
         screen.getByRole("button", { name: "Guardar cambios" })
       )
@@ -410,7 +417,7 @@ describe("PaginaSucursal", () => {
       const usuario = userEvent.setup()
       renderizar("/configuracion/sucursales/7")
 
-      await usuario.click(await screen.findByRole("switch", { name: "Activa" }))
+      await usuario.click(await screen.findByRole("switch", { name: "Estado" }))
       await usuario.click(
         screen.getByRole("button", { name: "Guardar cambios" })
       )
@@ -435,7 +442,7 @@ describe("PaginaSucursal", () => {
       const usuario = userEvent.setup()
       renderizar("/configuracion/sucursales/7")
 
-      const activa = await screen.findByRole("switch", { name: "Activa" })
+      const activa = await screen.findByRole("switch", { name: "Estado" })
       await usuario.click(activa)
       await usuario.click(
         screen.getByRole("button", { name: "Guardar cambios" })
@@ -465,7 +472,7 @@ describe("PaginaSucursal", () => {
         "configuracion-crud:modificar",
       ])
 
-      const activa = await screen.findByRole("switch", { name: "Activa" })
+      const activa = await screen.findByRole("switch", { name: "Estado" })
       expect(activa.hasAttribute("data-disabled")).toBe(true)
       expect(screen.getByText("Requiere permiso para eliminar.")).toBeTruthy()
       expect(screen.queryByRole("button", { name: "Activar" })).toBeNull()
@@ -475,7 +482,7 @@ describe("PaginaSucursal", () => {
       renderizar("/configuracion/sucursales/nueva")
 
       await screen.findByRole("switch", { name: "Matriz" })
-      expect(screen.queryByRole("switch", { name: "Activa" })).toBeNull()
+      expect(screen.queryByRole("switch", { name: "Estado" })).toBeNull()
     })
   })
 
@@ -527,17 +534,30 @@ describe("PaginaSucursal", () => {
       })
     })
 
+    it("al abrir la edición el cursor queda en Código", async () => {
+      renderizar("/configuracion/sucursales/7")
+
+      const codigo = await screen.findByLabelText("Código")
+      await vi.waitFor(() => expect(document.activeElement).toBe(codigo))
+    })
+
     it("muestra migas de pan, estado y certificado configurado", async () => {
       renderizar("/configuracion/sucursales/7")
 
-      expect(await screen.findByRole("heading", { name: "Norte" })).toBeTruthy()
+      const titulo = await screen.findByRole("heading", { name: "Norte" })
       const migas = screen.getByRole("navigation", {
         name: "Ruta de navegación",
       })
       expect(migas.textContent).toContain("Sucursales")
-      // El encabezado solo muestra la descripción.
-      expect(screen.queryByText("Código 001")).toBeNull()
-      expect(screen.queryByText("Activo")).toBeNull()
+      // El encabezado solo muestra la descripción; el estado va en el
+      // formulario (interruptor Estado con su valor visible).
+      const encabezado = titulo.closest("header")
+      expect(encabezado?.textContent).not.toContain("Código 001")
+      expect(encabezado?.textContent).not.toContain("Activo")
+      const estado = screen.getByRole("switch", { name: "Estado" })
+      expect(estado.closest("[data-slot=field]")?.textContent).toContain(
+        "Activo"
+      )
       expect(await screen.findByText("Configurado")).toBeTruthy()
     })
 
