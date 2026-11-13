@@ -27,6 +27,17 @@ interface PropsCampoInterruptor<T extends FieldValues> {
    * input abajo) cuando comparte fila con ellos en una grilla.
    */
   alinearConCampos?: boolean
+  /**
+   * Muestra junto a la etiqueta el valor actual (ej. "Activo"). Es solo
+   * visual: el lector de pantalla ya anuncia si el interruptor está marcado.
+   */
+  textoValor?: (marcado: boolean) => React.ReactNode
+  /**
+   * Etiqueta arriba e interruptor abajo, como un campo de texto: para
+   * compartir fila con inputs (alinea etiqueta con etiqueta e interruptor con
+   * input aunque el vecino tenga texto de ayuda debajo).
+   */
+  etiquetaArriba?: boolean
 }
 
 /** Interruptor sí/no con etiqueta, ayuda y error asociados. */
@@ -37,6 +48,8 @@ export function CampoInterruptor<T extends FieldValues>({
   descripcion,
   disabled,
   alinearConCampos = false,
+  textoValor,
+  etiquetaArriba = false,
 }: PropsCampoInterruptor<T>) {
   const idCampo = useId()
   const idError = `${idCampo}-error`
@@ -46,13 +59,8 @@ export function CampoInterruptor<T extends FieldValues>({
     <Controller
       control={control}
       name={name}
-      render={({ field, fieldState }) => (
-        <Field
-          orientation="horizontal"
-          data-invalid={fieldState.invalid}
-          // En una columna (móvil) no hay vecinos con los que alinear.
-          className={cn(alinearConCampos && "sm:self-end sm:py-1.5")}
-        >
+      render={({ field, fieldState }) => {
+        const interruptor = (
           <Switch
             id={idCampo}
             name={field.name}
@@ -68,8 +76,13 @@ export function CampoInterruptor<T extends FieldValues>({
                 .join(" ") || undefined
             }
           />
-          <FieldContent>
-            <FieldLabel htmlFor={idCampo}>{etiqueta}</FieldLabel>
+        )
+        // Solo visual: el lector de pantalla ya anuncia si está marcado.
+        const valor = textoValor && (
+          <span aria-hidden="true">{textoValor(field.value === true)}</span>
+        )
+        const ayudaYError = (
+          <>
             {descripcion && (
               <FieldDescription id={idDescripcion}>
                 {descripcion}
@@ -78,9 +91,46 @@ export function CampoInterruptor<T extends FieldValues>({
             {fieldState.error && (
               <FieldError id={idError} errors={[fieldState.error]} />
             )}
-          </FieldContent>
-        </Field>
-      )}
+          </>
+        )
+
+        // Etiqueta arriba y el interruptor a la altura de un input (h-8):
+        // queda alineado con los campos de texto vecinos de la fila.
+        if (etiquetaArriba) {
+          return (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={idCampo}>{etiqueta}</FieldLabel>
+              <div className="flex h-8 items-center gap-2">
+                {interruptor}
+                {valor}
+              </div>
+              {ayudaYError}
+            </Field>
+          )
+        }
+
+        return (
+          <Field
+            orientation="horizontal"
+            data-invalid={fieldState.invalid}
+            // En una columna (móvil) no hay vecinos con los que alinear.
+            className={cn(alinearConCampos && "sm:self-end sm:py-1.5")}
+          >
+            {interruptor}
+            <FieldContent>
+              {valor ? (
+                <div className="flex items-center gap-2">
+                  <FieldLabel htmlFor={idCampo}>{etiqueta}</FieldLabel>
+                  {valor}
+                </div>
+              ) : (
+                <FieldLabel htmlFor={idCampo}>{etiqueta}</FieldLabel>
+              )}
+              {ayudaYError}
+            </FieldContent>
+          </Field>
+        )
+      }}
     />
   )
 }

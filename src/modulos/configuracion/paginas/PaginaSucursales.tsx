@@ -195,8 +195,8 @@ export function PaginaSucursales() {
         titulo="Eliminar sucursal"
         descripcion={
           <>
-            La sucursal <strong>{porEliminar?.descri}</strong> quedará inactiva.
-            ¿Desea continuar?
+            La sucursal <strong>{porEliminar?.descri}</strong> quedará en estado
+            Inactivo. ¿Desea continuar?
           </>
         }
         textoConfirmar="Eliminar"
