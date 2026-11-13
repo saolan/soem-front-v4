@@ -1,5 +1,6 @@
 import { cleanup, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { toast } from "sonner"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
@@ -14,7 +15,7 @@ const precio = {
   codigo: "DOC",
   descri: "Docena",
   alcanc: "TODOS",
-  factor: "12.000000",
+  factor: "12",
   estado: true,
 }
 
@@ -82,7 +83,7 @@ describe("PaginaPrecios", () => {
     )
   })
 
-  it("muestra el factor con formato y el alcance tal como viene del API", async () => {
+  it("muestra el factor con formato y el alcance con su texto legible", async () => {
     renderizar(TODOS)
     const tabla = await screen.findByRole("table", {
       name: "Listado de listas de precio",
@@ -90,7 +91,7 @@ describe("PaginaPrecios", () => {
 
     // La tabla aparece primero con el skeleton de carga: espera a los datos.
     expect(await within(tabla).findByText("12")).toBeTruthy()
-    expect(within(tabla).getByText("TODOS")).toBeTruthy()
+    expect(within(tabla).getByText("Todos")).toBeTruthy()
   })
 
   it("ordena por Factor en el servidor", async () => {
@@ -146,11 +147,51 @@ describe("PaginaPrecios", () => {
     )
   })
 
-  it("una lista inactiva se reactiva con un PUT de sus datos y estado activo", async () => {
+  it("al fallar la eliminación avisa el mensaje y el detalle del API", async () => {
+    const errorToast = vi.spyOn(toast, "error")
+    fetchSimulado.mockImplementation(async (_url, init) =>
+      init?.method === "DELETE"
+        ? respuestaApi(null, 409, {
+            mensaje: "La operación entra en conflicto con otro registro",
+            errores: [
+              {
+                campo: null,
+                detalle: "La lista de precio está en uso",
+              },
+            ],
+          })
+        : respuestaApi([precio], 200, { paginacion })
+    )
+    const usuario = userEvent.setup()
+    renderizar(TODOS)
+    await screen.findAllByText("Docena")
+
+    await usuario.click(
+      within(screen.getByRole("table")).getByRole("button", {
+        name: "Eliminar Docena",
+      })
+    )
+    const dialogo = await screen.findByRole("alertdialog")
+    await usuario.click(
+      within(dialogo).getByRole("button", { name: "Eliminar" })
+    )
+
+    await vi.waitFor(() =>
+      expect(errorToast).toHaveBeenCalledWith(
+        "La operación entra en conflicto con otro registro",
+        {
+          description: "La lista de precio está en uso",
+        }
+      )
+    )
+    errorToast.mockRestore()
+  })
+
+  it("una lista inactiva se reactiva con PUT /activar, sin cuerpo", async () => {
     fetchSimulado.mockImplementation(async (_url, init) =>
       init?.method === "PUT"
         ? respuestaApi(precio, 200, {
-            mensaje: "Lista de precio modificada correctamente",
+            mensaje: "Lista de precio activada correctamente",
           })
         : respuestaApi([{ ...precio, estado: false }], 200, { paginacion })
     )
@@ -170,14 +211,8 @@ describe("PaginaPrecios", () => {
       const put = fetchSimulado.mock.calls.find(
         ([, init]) => init?.method === "PUT"
       )
-      expect(String(put?.[0])).toBe("/api/v1/precios/3")
-      expect(JSON.parse(String(put?.[1]?.body))).toEqual({
-        codigo: "DOC",
-        descri: "Docena",
-        alcanc: "TODOS",
-        factor: "12.000000",
-        estado: true,
-      })
+      expect(String(put?.[0])).toBe("/api/v1/precios/3/activar")
+      expect(put?.[1]?.body).toBeUndefined()
     })
   })
 

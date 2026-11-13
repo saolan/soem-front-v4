@@ -1,4 +1,5 @@
 import { EtiquetaEstado } from "@/compartido/componentes/EtiquetaEstado"
+import { Badge } from "@/compartido/componentes/ui/badge"
 import {
   Card,
   CardAction,
@@ -7,7 +8,10 @@ import {
   CardTitle,
 } from "@/compartido/componentes/ui/card"
 import { formatoDecimal } from "@/compartido/utilidades/numero"
-import type { PrecioDTO } from "@/modulos/configuracion/esquemas/precio"
+import {
+  ETIQUETAS_ALCANCE,
+  type PrecioDTO,
+} from "@/modulos/configuracion/esquemas/precio"
 
 /** Presentación de una lista de precio en el listado móvil. */
 export function TarjetaPrecio({
@@ -29,10 +33,12 @@ export function TarjetaPrecio({
           <dd className="tabular-nums">{precio.codigo}</dd>
           <dt className="text-muted-foreground">Factor</dt>
           <dd className="tabular-nums">{formatoDecimal(precio.factor)}</dd>
-          <dt className="text-muted-foreground">Alcance</dt>
-          <dd>{precio.alcanc}</dd>
         </dl>
         <div className="flex gap-2">
+          <Badge variant="secondary">
+            <span className="sr-only">Alcance </span>
+            {ETIQUETAS_ALCANCE[precio.alcanc]}
+          </Badge>
           <EtiquetaEstado activo={precio.estado} />
         </div>
       </CardContent>

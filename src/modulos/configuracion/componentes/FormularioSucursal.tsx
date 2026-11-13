@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { aplicarErroresFormulario } from "@/compartido/api/aplicarErroresFormulario"
 import { AvisoError } from "@/compartido/componentes/AvisoError"
 import { BarraAccionesFormulario } from "@/compartido/componentes/BarraAccionesFormulario"
+import { CampoEstado } from "@/compartido/componentes/CampoEstado"
 import { CampoFormulario } from "@/compartido/componentes/CampoFormulario"
 import { CampoInterruptor } from "@/compartido/componentes/CampoInterruptor"
 import {
@@ -63,6 +64,14 @@ export function FormularioSucursal({
   useEffect(() => {
     onCambiosPendientes?.(isDirty)
   }, [isDirty, onCambiosPendientes])
+
+  // Al abrir el alta o la edición se escribe directo en el primer campo, sin
+  // tener que hacer clic. En consulta (sin permiso) no hay nada que editar.
+  useEffect(() => {
+    if (!soloLectura) {
+      formulario.setFocus("codigo")
+    }
+  }, [formulario, soloLectura])
 
   const enviar = formulario.handleSubmit(async (valores) => {
     setAviso(null)
@@ -139,16 +148,11 @@ export function FormularioSucursal({
             />
             {/* El alta siempre crea la sucursal activa (POST). */}
             {!esAlta && (
-              <CampoInterruptor
+              <CampoEstado
                 control={control}
                 name="estado"
-                etiqueta="Activa"
-                disabled={!puedeCambiarEstado}
-                descripcion={
-                  puedeCambiarEstado || soloLectura
-                    ? undefined
-                    : "Requiere permiso para eliminar."
-                }
+                puedeCambiar={puedeCambiarEstado}
+                soloLectura={soloLectura}
               />
             )}
           </GrillaCampos>

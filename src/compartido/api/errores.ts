@@ -54,3 +54,15 @@ export function esReintentable(error: unknown): boolean {
 export function mensajeDeError(error: unknown): string {
   return error instanceof ErrorApi ? error.message : mensajePorEstado(-1)
 }
+
+/**
+ * Detalles de `errores` del API unidos en un texto, para acompañar el
+ * mensaje cuando no hay un formulario donde mostrarlos (ej. un toast al
+ * eliminar desde un listado). `undefined` si no hay detalles.
+ */
+export function detalleDeError(error: unknown): string | undefined {
+  if (!(error instanceof ErrorApi) || error.errores.length === 0) {
+    return undefined
+  }
+  return error.errores.map(({ detalle }) => detalle).join(". ")
+}

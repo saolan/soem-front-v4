@@ -70,18 +70,18 @@ describe("esquemaPrecioFormulario", () => {
 })
 
 describe("aCuerpoPrecio", () => {
-  it("envía el PrecioDTO sin id, con el factor como string y sin espacios", () => {
+  it("envía el PrecioDTO sin id ni estado, con el factor como string y sin espacios", () => {
     const valores = esquemaPrecioFormulario.parse({
       ...validos,
       codigo: " DOC ",
       factor: " 12.5 ",
     })
+    // `estado` es de solo lectura en la API (DELETE y PUT /activar).
     expect(aCuerpoPrecio(valores)).toEqual({
       codigo: "DOC",
       descri: "Docena",
       alcanc: "NINGUNO",
       factor: "12.5",
-      estado: true,
     })
   })
 })
@@ -93,16 +93,30 @@ describe("esquemaPrecioDTO", () => {
       codigo: "DOC",
       descri: "Docena",
       alcanc: "TODOS",
-      factor: "12.000000",
+      factor: "12",
       estado: false,
     })
     expect(aFormularioPrecio(dto)).toEqual({
       codigo: "DOC",
       descri: "Docena",
       alcanc: "TODOS",
-      factor: "12.000000",
+      factor: "12",
       estado: false,
     })
+  })
+
+  // DecimalTextoAdaptador del back-end: string sin ceros de relleno.
+  it("acepta el factor decimal como string", () => {
+    expect(
+      esquemaPrecioDTO.parse({
+        precioId: 4,
+        codigo: "MED",
+        descri: "Media docena",
+        alcanc: "NINGUNO",
+        factor: "0.5",
+        estado: true,
+      }).factor
+    ).toBe("0.5")
   })
 
   it("rechaza el factor como número JSON (BigDecimal viaja como string)", () => {

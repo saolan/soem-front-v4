@@ -1,17 +1,23 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
+import { TriangleAlertIcon } from "lucide-react"
+import { useForm, useWatch } from "react-hook-form"
 
 import { aplicarErroresFormulario } from "@/compartido/api/aplicarErroresFormulario"
 import { AvisoError } from "@/compartido/componentes/AvisoError"
 import { BarraAccionesFormulario } from "@/compartido/componentes/BarraAccionesFormulario"
+import { CampoEstado } from "@/compartido/componentes/CampoEstado"
 import { CampoFormulario } from "@/compartido/componentes/CampoFormulario"
-import { CampoInterruptor } from "@/compartido/componentes/CampoInterruptor"
-import { CampoSeleccion } from "@/compartido/componentes/CampoSeleccion"
+import { CampoOpcionesTarjeta } from "@/compartido/componentes/CampoOpcionesTarjeta"
 import {
   GrillaCampos,
   SeccionFormulario,
 } from "@/compartido/componentes/SeccionFormulario"
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/compartido/componentes/ui/alert"
 import { Button } from "@/compartido/componentes/ui/button"
 import {
   CAMPOS_PRECIO,
@@ -43,9 +49,15 @@ interface PropsFormularioPrecio {
   onCambiosPendientes?: (hayCambios: boolean) => void
 }
 
-const AYUDA_ALCANCE_ALTA =
-  "TODOS habilita la lista en todas las sucursales activas y crea el precio en cero de cada producto activo. No se puede cambiar después."
+const AYUDA_ALCANCE_ALTA = "No se puede cambiar después de crear la lista."
 const AYUDA_ALCANCE_EDICION = "El alcance se fija al crear la lista."
+// La descripción de la tarjeta ya explica qué se genera: el aviso destaca
+// lo que no se puede deshacer.
+const AVISO_ALCANCE_TODOS = {
+  titulo: "Esta elección no se puede deshacer",
+  descripcion:
+    "Los precios en cero de todos los productos activos se crean al guardar la lista y el alcance no se puede cambiar después.",
+}
 
 /** Datos de una lista de precio (PrecioDTO). */
 export function FormularioPrecio({
@@ -64,11 +76,20 @@ export function FormularioPrecio({
     defaultValues: valoresIniciales,
   })
   const { control } = formulario
+  const alcanc = useWatch({ control, name: "alcanc" })
   const { isDirty, isSubmitting } = formulario.formState
 
   useEffect(() => {
     onCambiosPendientes?.(isDirty)
   }, [isDirty, onCambiosPendientes])
+
+  // Al abrir el alta o la edición se escribe directo en el primer campo, sin
+  // tener que hacer clic. En consulta (sin permiso) no hay nada que editar.
+  useEffect(() => {
+    if (!soloLectura) {
+      formulario.setFocus("codigo")
+    }
+  }, [formulario, soloLectura])
 
   const enviar = formulario.handleSubmit(async (valores) => {
     setAviso(null)
@@ -93,7 +114,9 @@ export function FormularioPrecio({
       <AvisoError mensaje={aviso} enfocar />
       <fieldset disabled={soloLectura} className="flex flex-col gap-6">
         <SeccionFormulario titulo="Datos de la lista">
-          <GrillaCampos>
+          {/* Pocos campos: 2 columnas también en xl, para que no quede uno
+              suelto en la segunda fila. */}
+          <GrillaCampos className="xl:grid-cols-2">
             <CampoFormulario
               control={control}
               name="codigo"
@@ -119,38 +142,44 @@ export function FormularioPrecio({
               inputMode="decimal"
               className="tabular-nums"
             />
-            <CampoSeleccion
-              control={control}
-              name="alcanc"
-              etiqueta="Alcance"
-              descripcion={
-                soloLectura
-                  ? undefined
-                  : esAlta
-                    ? AYUDA_ALCANCE_ALTA
-                    : AYUDA_ALCANCE_EDICION
-              }
-              opciones={OPCIONES_ALCANCE}
-              // Inmutable: el PUT lo ignora.
-              disabled={!esAlta}
-              obligatorio={esAlta && !soloLectura}
-            />
-          </GrillaCampos>
-          {/* El alta crea la lista activa por defecto. */}
-          {!esAlta && (
-            <GrillaCampos>
-              <CampoInterruptor
+            {/* El alta crea el registro en estado Activo. */}
+            {!esAlta && (
+              <CampoEstado
                 control={control}
                 name="estado"
-                etiqueta="Activa"
-                disabled={!puedeCambiarEstado}
-                descripcion={
-                  puedeCambiarEstado || soloLectura
-                    ? undefined
-                    : "Requiere permiso para eliminar."
-                }
+                puedeCambiar={puedeCambiarEstado}
+                soloLectura={soloLectura}
+                // Comparte fila con Factor (etiqueta, input y ayuda).
+                etiquetaArriba
               />
-            </GrillaCampos>
+            )}
+          </GrillaCampos>
+          {/* Tarjetas a lo ancho: cada opción explica su efecto. Inmutable
+              al editar (el PUT lo ignora): solo se muestra la elegida. */}
+          <CampoOpcionesTarjeta
+            control={control}
+            name="alcanc"
+            etiqueta="Alcance"
+            opciones={OPCIONES_ALCANCE}
+            descripcion={
+              soloLectura
+                ? undefined
+                : esAlta
+                  ? AYUDA_ALCANCE_ALTA
+                  : AYUDA_ALCANCE_EDICION
+            }
+            obligatorio={esAlta && !soloLectura}
+            soloSeleccionada={!esAlta}
+          />
+          {/* Efecto irreversible: se destaca solo cuando se elige TODOS. */}
+          {esAlta && alcanc === "TODOS" && (
+            <Alert className="border-ambar">
+              <TriangleAlertIcon aria-hidden="true" className="text-ambar" />
+              <AlertTitle>{AVISO_ALCANCE_TODOS.titulo}</AlertTitle>
+              <AlertDescription>
+                {AVISO_ALCANCE_TODOS.descripcion}
+              </AlertDescription>
+            </Alert>
           )}
         </SeccionFormulario>
       </fieldset>
