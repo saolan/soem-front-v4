@@ -103,7 +103,7 @@ describe("PaginaPrecio", () => {
       expect(cuerpoEnviado("POST")).toEqual({
         codigo: "DOC",
         descri: "Docena",
-        alcanc: "NINGUNO",
+        alcanc: "TODOS",
         factor: "12.5",
       })
     })
@@ -184,15 +184,15 @@ describe("PaginaPrecio", () => {
       const alcance = await screen.findByRole("radiogroup", {
         name: /Alcance/,
       })
-      // Las dos opciones con su efecto; NINGUNO elegido por defecto.
+      // Las dos opciones con su efecto; TODOS elegido por defecto.
       const todos = within(alcance).getByRole("radio", {
         name: "Todos",
       })
       const ninguno = within(alcance).getByRole("radio", {
         name: "Ninguno",
       })
-      expect(todos.getAttribute("aria-checked")).toBe("false")
-      expect(ninguno.getAttribute("aria-checked")).toBe("true")
+      expect(todos.getAttribute("aria-checked")).toBe("true")
+      expect(ninguno.getAttribute("aria-checked")).toBe("false")
       expect(
         document.getElementById(todos.getAttribute("aria-describedby") ?? "")
           ?.textContent
@@ -204,19 +204,19 @@ describe("PaginaPrecio", () => {
       const usuario = userEvent.setup()
       renderizar("/configuracion/precios/nuevo")
 
-      const ninguno = await screen.findByRole("radio", {
-        name: "Ninguno",
-      })
-      ninguno.focus()
-      await usuario.keyboard("{ArrowUp}")
-
-      const todos = screen.getByRole("radio", { name: "Todos" })
-      expect(todos.getAttribute("aria-checked")).toBe("true")
-      expect(document.activeElement).toBe(todos)
+      const todos = await screen.findByRole("radio", { name: "Todos" })
+      // TODOS (por defecto) destaca su efecto irreversible.
       expect(await screen.findByRole("alert")).toBeTruthy()
+      todos.focus()
+      await usuario.keyboard("{ArrowDown}")
+
+      const ninguno = screen.getByRole("radio", { name: "Ninguno" })
+      expect(ninguno.getAttribute("aria-checked")).toBe("true")
+      expect(document.activeElement).toBe(ninguno)
+      expect(screen.queryByRole("alert")).toBeNull()
     })
 
-    it("envía el alcance elegido por su nombre (TODOS)", async () => {
+    it("envía el alcance por defecto por su nombre (TODOS)", async () => {
       fetchSimulado.mockResolvedValue(
         respuestaApi({ ...precio, alcanc: "TODOS" }, 201, {
           mensaje: "Lista de precio creada correctamente",
@@ -227,10 +227,7 @@ describe("PaginaPrecio", () => {
 
       await usuario.type(await screen.findByLabelText("Código"), "DOC")
       await usuario.type(screen.getByLabelText("Descripción"), "Docena")
-      // NINGUNO (por defecto) no avisa; TODOS destaca su efecto irreversible.
-      expect(screen.queryByRole("alert")).toBeNull()
-      // Clic en el título de la tarjeta: toda la tarjeta es la etiqueta.
-      await usuario.click(screen.getByText("Todos"))
+      // TODOS (por defecto) destaca su efecto irreversible.
       expect((await screen.findByRole("alert")).textContent).toContain(
         "Esta elección no se puede deshacer"
       )
@@ -238,6 +235,26 @@ describe("PaginaPrecio", () => {
 
       await screen.findByLabelText("Ubicación")
       expect(cuerpoEnviado("POST")).toMatchObject({ alcanc: "TODOS" })
+    })
+
+    it("envía el alcance elegido por su nombre (NINGUNO)", async () => {
+      fetchSimulado.mockResolvedValue(
+        respuestaApi(precio, 201, {
+          mensaje: "Lista de precio creada correctamente",
+        })
+      )
+      const usuario = userEvent.setup()
+      renderizar("/configuracion/precios/nuevo")
+
+      await usuario.type(await screen.findByLabelText("Código"), "DOC")
+      await usuario.type(screen.getByLabelText("Descripción"), "Docena")
+      // Clic en el título de la tarjeta: toda la tarjeta es la etiqueta.
+      await usuario.click(screen.getByText("Ninguno"))
+      expect(screen.queryByRole("alert")).toBeNull()
+      await usuario.click(screen.getByRole("button", { name: "Crear precio" }))
+
+      await screen.findByLabelText("Ubicación")
+      expect(cuerpoEnviado("POST")).toMatchObject({ alcanc: "NINGUNO" })
     })
 
     it("sin permiso de crear muestra un aviso", async () => {
