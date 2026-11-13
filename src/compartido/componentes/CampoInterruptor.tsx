@@ -14,7 +14,6 @@ import {
   FieldLabel,
 } from "@/compartido/componentes/ui/field"
 import { Switch } from "@/compartido/componentes/ui/switch"
-import { cn } from "@/compartido/utilidades/cn"
 
 interface PropsCampoInterruptor<T extends FieldValues> {
   control: Control<T>
@@ -22,11 +21,6 @@ interface PropsCampoInterruptor<T extends FieldValues> {
   etiqueta: string
   descripcion?: string
   disabled?: boolean
-  /**
-   * Alinea el interruptor con la fila de los inputs vecinos (etiqueta arriba e
-   * input abajo) cuando comparte fila con ellos en una grilla.
-   */
-  alinearConCampos?: boolean
   /**
    * Muestra junto a la etiqueta el valor actual (ej. "Activo"). Es solo
    * visual: el lector de pantalla ya anuncia si el interruptor está marcado.
@@ -47,7 +41,6 @@ export function CampoInterruptor<T extends FieldValues>({
   etiqueta,
   descripcion,
   disabled,
-  alinearConCampos = false,
   textoValor,
   etiquetaArriba = false,
 }: PropsCampoInterruptor<T>) {
@@ -110,12 +103,7 @@ export function CampoInterruptor<T extends FieldValues>({
         }
 
         return (
-          <Field
-            orientation="horizontal"
-            data-invalid={fieldState.invalid}
-            // En una columna (móvil) no hay vecinos con los que alinear.
-            className={cn(alinearConCampos && "sm:self-end sm:py-1.5")}
-          >
+          <Field orientation="horizontal" data-invalid={fieldState.invalid}>
             {interruptor}
             <FieldContent>
               {valor ? (

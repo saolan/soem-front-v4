@@ -486,6 +486,25 @@ describe("PaginaSucursal", () => {
     })
   })
 
+  it("los interruptores sí/no muestran su valor (Sí o No) junto al control", async () => {
+    const usuario = userEvent.setup()
+    renderizar("/configuracion/sucursales/nueva")
+
+    const matriz = await screen.findByRole("switch", { name: "Matriz" })
+    const obligaCont = screen.getByRole("switch", {
+      name: "Obligado a llevar contabilidad",
+    })
+    // El valor es solo visual: no cambia el nombre accesible del interruptor.
+    const valorDe = (interruptor: HTMLElement) =>
+      interruptor.parentElement?.textContent
+    expect(valorDe(matriz)).toBe("No")
+    expect(valorDe(obligaCont)).toBe("No")
+
+    await usuario.click(matriz)
+    expect(valorDe(matriz)).toBe("Sí")
+    expect(valorDe(obligaCont)).toBe("No")
+  })
+
   it("el formulario no ofrece autocompletar con los datos del usuario", async () => {
     renderizar("/configuracion/sucursales/nueva")
 

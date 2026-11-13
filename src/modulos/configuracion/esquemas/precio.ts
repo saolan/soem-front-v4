@@ -100,7 +100,7 @@ export const CAMPOS_PRECIO = Object.keys(
 export const valoresPrecioNuevo: PrecioFormulario = {
   codigo: "",
   descri: "",
-  alcanc: "NINGUNO",
+  alcanc: "TODOS",
   factor: "1",
   estado: true,
 }

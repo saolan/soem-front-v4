@@ -80,7 +80,7 @@ describe("aCuerpoPrecio", () => {
     expect(aCuerpoPrecio(valores)).toEqual({
       codigo: "DOC",
       descri: "Docena",
-      alcanc: "NINGUNO",
+      alcanc: "TODOS",
       factor: "12.5",
     })
   })

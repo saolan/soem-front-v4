@@ -8,6 +8,7 @@ import { BarraAccionesFormulario } from "@/compartido/componentes/BarraAccionesF
 import { CampoEstado } from "@/compartido/componentes/CampoEstado"
 import { CampoFormulario } from "@/compartido/componentes/CampoFormulario"
 import { CampoInterruptor } from "@/compartido/componentes/CampoInterruptor"
+import { EtiquetaSiNo } from "@/compartido/componentes/EtiquetaSiNo"
 import {
   GrillaCampos,
   SeccionFormulario,
@@ -41,6 +42,9 @@ interface PropsFormularioSucursal {
   /** Informa si hay cambios sin guardar (aviso al salir de la página). */
   onCambiosPendientes?: (hayCambios: boolean) => void
 }
+
+// Valor visible de los interruptores sí/no (como Activo/Inactivo en Estado).
+const textoSiNo = (valor: boolean) => <EtiquetaSiNo valor={valor} />
 
 /** Datos generales de la sucursal (SucursalDTO). */
 export function FormularioSucursal({
@@ -145,6 +149,8 @@ export function FormularioSucursal({
               control={control}
               name="matriz"
               etiqueta="Matriz"
+              textoValor={textoSiNo}
+              etiquetaArriba
             />
             {/* El alta siempre crea la sucursal activa (POST). */}
             {!esAlta && (
@@ -153,6 +159,7 @@ export function FormularioSucursal({
                 name="estado"
                 puedeCambiar={puedeCambiarEstado}
                 soloLectura={soloLectura}
+                etiquetaArriba
               />
             )}
           </GrillaCampos>
@@ -254,7 +261,8 @@ export function FormularioSucursal({
               control={control}
               name="obligaCont"
               etiqueta="Obligado a llevar contabilidad"
-              alinearConCampos
+              textoValor={textoSiNo}
+              etiquetaArriba
             />
           </GrillaCampos>
         </SeccionFormulario>
